@@ -22,7 +22,6 @@ logging.basicConfig(
 
 PROGRAM_DETAIL_URL_TEMPLATE = "https://freida.ama-assn.org/program/{}"
 
-
 def find_included_node(type_name, node_id, included_list):
     if not type_name or not node_id:
         return None
@@ -30,7 +29,6 @@ def find_included_node(type_name, node_id, included_list):
         if isinstance(node, dict) and node.get('type') == type_name and node.get('id') == node_id:
             return node
     return None
-
 
 def extract_program_detail(page, program_id):
     url = PROGRAM_DETAIL_URL_TEMPLATE.format(program_id)
@@ -70,8 +68,9 @@ def extract_program_detail(page, program_id):
             if (
                 isinstance(value, dict) and 'b' in value and
                 isinstance(value['b'], dict) and 'data' in value['b'] and
-                isinstance(value['b']['data'], list) and value['b']['data'] and
-                isinstance(value['b']['data'][0], dict) and 'attributes' in value['b']['data'][0]
+                isinstance(value['b']['data'], list) and any(
+                    n.get("type") == "node--program" for n in value['b']['data'] if isinstance(n, dict)
+                )
             ):
                 full_json_payload = value
                 break
@@ -92,7 +91,14 @@ def extract_program_detail(page, program_id):
                 raise ValueError(error)
             return {"program_id": program_id, "source_url": url, "error": error}
 
-        program_node = program_nodes[0]
+        program_node = next((node for node in program_nodes if node.get("type") == "node--program"), None)
+        if not program_node:
+            error = "No node--program found in JSON"
+            logging.error(error)
+            if EXIT_ON_ERRORS:
+                raise ValueError(error)
+            return {"program_id": program_id, "source_url": url, "error": error}
+
         included_nodes = api_data.get('included', [])
 
         prog_attrs = program_node.get('attributes', {})
@@ -111,15 +117,12 @@ def extract_program_detail(page, program_id):
             'raw_ng_state_json': raw_json if DEBUG_MODE else None
         }
 
-        specialty_ref = prog_rels.get('field_specialty', {}).get('data', {})
-        specialty_node = find_included_node(specialty_ref.get('type'), specialty_ref.get('id'), included_nodes) if isinstance(specialty_ref, dict) else None
-        extracted_data['specialty_title'] = specialty_node.get('attributes', {}).get('title') if specialty_node else None
-
-        survey_node = None
         survey_ref_data_list = prog_rels.get('field_survey', {}).get('data', [])
+        survey_node = None
         if survey_ref_data_list and isinstance(survey_ref_data_list, list):
             survey_ref_data = survey_ref_data_list[0]
-            survey_node = find_included_node(survey_ref_data.get('type'), survey_ref_data.get('id'), included_nodes) if isinstance(survey_ref_data, dict) else None
+            if survey_ref_data and isinstance(survey_ref_data, dict):
+                survey_node = find_included_node(survey_ref_data.get('type'), survey_ref_data.get('id'), included_nodes)
 
         if survey_node:
             survey_attrs = survey_node.get('attributes', {})
@@ -140,6 +143,30 @@ def extract_program_detail(page, program_id):
                 'visa_statuses_accepted': survey_attrs.get('field_visa_status')
             })
 
+        specialty_ref = prog_rels.get('field_specialty', {}).get('data', {})
+        specialty_node = find_included_node(specialty_ref.get('type'), specialty_ref.get('id'), included_nodes) if isinstance(specialty_ref, dict) else None
+        extracted_data['specialty_title'] = specialty_node.get('attributes', {}).get('title') if specialty_node else None
+
+        director_ref = prog_rels.get('field_program_director', {}).get('data', {})
+        if isinstance(director_ref, dict):
+            director_node = find_included_node(director_ref.get('type'), director_ref.get('id'), included_nodes)
+            if director_node:
+                dir_attrs = director_node.get('attributes', {})
+                extracted_data['program_director_email'] = dir_attrs.get('field_email')
+                extracted_data['program_director_phone'] = dir_attrs.get('field_phone')
+                if not extracted_data['program_director_email'] and EXIT_ON_ERRORS:
+                    raise ValueError("Missing program director email")
+
+        contact_ref = prog_rels.get('field_program_contact', {}).get('data', {})
+        if isinstance(contact_ref, dict):
+            contact_node = find_included_node(contact_ref.get('type'), contact_ref.get('id'), included_nodes)
+            if contact_node:
+                contact_attrs = contact_node.get('attributes', {})
+                extracted_data['contact_email'] = contact_attrs.get('field_email')
+                extracted_data['contact_phone'] = contact_attrs.get('field_phone')
+                if not extracted_data['contact_email'] and EXIT_ON_ERRORS:
+                    raise ValueError("Missing contact person email")
+
         return extracted_data
 
     except Exception as e:
@@ -147,7 +174,6 @@ def extract_program_detail(page, program_id):
         if EXIT_ON_ERRORS:
             raise
         return {"program_id": program_id, "source_url": url, "error": str(e)}
-
 
 def visit_all_program_ids():
     ids_df = pd.read_csv("freida_program_ids.csv")
@@ -164,7 +190,7 @@ def visit_all_program_ids():
 
             if (idx + 1) % 25 == 0 or idx == 1:
                 df_partial = pd.DataFrame(all_programs)
-                partial_file = f"freida_partial_{idx + 1}.csv"
+                partial_file = f"freida_partial_{idx + 1}.csv" if (idx + 1) % 25 == 0 else "freida_partial_row2.csv"
                 df_partial.to_csv(partial_file, index=False)
                 logging.info(f"📄 Saved checkpoint to {partial_file}")
 
@@ -173,7 +199,6 @@ def visit_all_program_ids():
         browser.close()
 
     return all_programs
-
 
 if __name__ == "__main__":
     try:
@@ -187,4 +212,3 @@ if __name__ == "__main__":
     except Exception as e:
         logging.critical(f"Unexpected error: {e}")
         sys.exit(1)
-
