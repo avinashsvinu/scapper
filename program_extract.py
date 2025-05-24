@@ -38,9 +38,10 @@ def extract_program_detail(page, program_id):
         soup = BeautifulSoup(html_content, 'html.parser')
         script_tag = soup.find('script', {'id': 'ng-state', 'type': 'application/json'})
         if not script_tag or not script_tag.string:
-            return {"program_id": program_id, "error": "Missing ng-state JSON"}
+            return {"program_id": program_id, "source_url": url, "error": "Missing ng-state JSON"}
 
         full_json_data = json.loads(script_tag.string)
+        raw_json = json.dumps(full_json_data)
         full_json_payload = None
 
         for key, value in full_json_data.items():
@@ -49,12 +50,12 @@ def extract_program_detail(page, program_id):
                 break
 
         if not full_json_payload:
-            return {"program_id": program_id, "error": "Missing main JSON payload"}
+            return {"program_id": program_id, "source_url": url, "error": "Missing main JSON payload"}
 
         api_data = full_json_payload.get('b', {})
         program_nodes = api_data.get('data', [])
         if not program_nodes or not isinstance(program_nodes, list):
-            return {"program_id": program_id, "error": "Missing program data"}
+            return {"program_id": program_id, "source_url": url, "error": "Missing program data"}
 
         program_node = program_nodes[0]
         included_nodes = api_data.get('included', [])
@@ -64,6 +65,7 @@ def extract_program_detail(page, program_id):
 
         extracted_data = {
             'program_id': prog_attrs.get('field_program_id'),
+            'source_url': url,
             'program_name_suffix': prog_attrs.get('title'),
             'city': prog_attrs.get('field_address', {}).get('locality'),
             'state': prog_attrs.get('field_address', {}).get('administrative_area'),
@@ -71,14 +73,13 @@ def extract_program_detail(page, program_id):
             'accredited_training_length': prog_attrs.get('field_accredited_length'),
             'required_training_length': prog_attrs.get('field_required_length'),
             'affiliated_us_government': prog_attrs.get('field_affiliated_us_gov'),
+            'raw_ng_state_json': raw_json if DEBUG_MODE else None
         }
 
-        # Specialty
         specialty_ref = prog_rels.get('field_specialty', {}).get('data', {})
         specialty_node = find_included_node(specialty_ref.get('type'), specialty_ref.get('id'), included_nodes) if isinstance(specialty_ref, dict) else None
         extracted_data['specialty_title'] = specialty_node.get('attributes', {}).get('title') if specialty_node else None
 
-        # Survey Data
         survey_node = None
         survey_ref_data_list = prog_rels.get('field_survey', {}).get('data', [])
         if survey_ref_data_list and isinstance(survey_ref_data_list, list):
@@ -109,7 +110,7 @@ def extract_program_detail(page, program_id):
 
     except Exception as e:
         logging.warning(f"Error loading program ID {program_id}: {e}")
-        return {"program_id": program_id, "error": str(e)}
+        return {"program_id": program_id, "source_url": url, "error": str(e)}
 
 
 def visit_all_program_ids():
@@ -124,6 +125,13 @@ def visit_all_program_ids():
             logging.debug(f"Processing row {idx+1}/{len(ids_df)}: Program ID {row['program_id']}")
             result = extract_program_detail(page, row["program_id"])
             all_programs.append(result)
+
+            if (idx + 1) % 25 == 0 or (idx+1) == 1:
+                df_partial = pd.DataFrame(all_programs)
+                partial_file = f"freida_partial_{idx + 1}.csv"
+                df_partial.to_csv(partial_file, index=False)
+                logging.info(f"📄 Saved checkpoint to {partial_file}")
+
             time.sleep(1.0)
 
         browser.close()
