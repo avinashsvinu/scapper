@@ -1,10 +1,15 @@
+import os
 import pickle
+from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
-LOGIN_URL = "https://the-internet.herokuapp.com/login"
-USERNAME = "tomsmith"
-PASSWORD = "SuperSecretPassword!"
-COOKIES_FILE = "cookies.pkl"
+# Load .env file
+load_dotenv()
+
+LOGIN_URL = os.getenv("LOGIN_URL") or "https://the-internet.herokuapp.com/login"
+USERNAME = os.getenv("USERNAME") or "default_user"
+PASSWORD = os.getenv("PASSWORD") or "default_pass"
+COOKIES_FILE = os.getenv("COOKIES_FILE") or "cookies.pkl"
 
 def login_and_save_cookies():
     with sync_playwright() as p:
@@ -12,7 +17,7 @@ def login_and_save_cookies():
         context = browser.new_context()
         page = context.new_page()
 
-        print("[*] Logging in...")
+        print(f"[*] Logging in to {LOGIN_URL}")
         page.goto(LOGIN_URL)
         page.fill("#username", USERNAME)
         page.fill("#password", PASSWORD)
@@ -24,7 +29,7 @@ def login_and_save_cookies():
         with open(COOKIES_FILE, "wb") as f:
             pickle.dump(cookies, f)
 
-        print("[*] Saved cookies to", COOKIES_FILE)
+        print(f"[*] Saved cookies to {COOKIES_FILE}")
         browser.close()
 
 def load_cookies_and_browse():
@@ -32,12 +37,17 @@ def load_cookies_and_browse():
         browser = p.chromium.launch(headless=False)
         context = browser.new_context()
 
+        if not os.path.exists(COOKIES_FILE):
+            print(f"[!] Cookie file '{COOKIES_FILE}' not found.")
+            return
+
         with open(COOKIES_FILE, "rb") as f:
             cookies = pickle.load(f)
             context.add_cookies(cookies)
 
         page = context.new_page()
-        page.goto("https://the-internet.herokuapp.com/secure")
+        post_login_url = LOGIN_URL.replace("login", "secure")
+        page.goto(post_login_url)
 
         print("[*] Loaded session. Exploring links...")
         links = page.query_selector_all("a")
