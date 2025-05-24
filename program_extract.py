@@ -126,13 +126,13 @@ def visit_all_program_ids():
             result = extract_program_detail(page, row["program_id"])
             all_programs.append(result)
 
-            if (idx + 1) % 25 == 0 or (idx+1) == 1:
+            if (idx + 1) % 25 == 0:
                 df_partial = pd.DataFrame(all_programs)
                 partial_file = f"freida_partial_{idx + 1}.csv"
                 df_partial.to_csv(partial_file, index=False)
                 logging.info(f"📄 Saved checkpoint to {partial_file}")
 
-            time.sleep(1.0)
+            time.sleep(2.0)  # Added sleep for reliability
 
         browser.close()
 
