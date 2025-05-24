@@ -8,9 +8,13 @@ import re
 import sys
 import json
 from bs4 import BeautifulSoup
+import os
 
-# Set default logging level
+# Set flags from CLI
 DEBUG_MODE = '--debug' in sys.argv
+EXIT_ON_ERRORS = '--exit-on-errors' in sys.argv
+
+# Logging
 logging.basicConfig(
     level=logging.DEBUG if DEBUG_MODE else logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -36,26 +40,57 @@ def extract_program_detail(page, program_id):
         page.wait_for_selector("div.survey-info", timeout=15000)
         html_content = page.content()
         soup = BeautifulSoup(html_content, 'html.parser')
+
+        if DEBUG_MODE:
+            screenshot_file = f"debug_snapshot_{program_id}.png"
+            page.screenshot(path=screenshot_file, full_page=True)
+            logging.debug(f"📸 Saved screenshot to {screenshot_file}")
+
         script_tag = soup.find('script', {'id': 'ng-state', 'type': 'application/json'})
         if not script_tag or not script_tag.string:
-            return {"program_id": program_id, "source_url": url, "error": "Missing ng-state JSON"}
+            error = "Missing ng-state JSON"
+            logging.error(error)
+            if EXIT_ON_ERRORS:
+                raise ValueError(error)
+            return {"program_id": program_id, "source_url": url, "error": error}
 
-        full_json_data = json.loads(script_tag.string)
+        try:
+            full_json_data = json.loads(script_tag.string)
+        except json.JSONDecodeError as e:
+            error = f"Malformed JSON: {e}"
+            logging.error(error)
+            if EXIT_ON_ERRORS:
+                raise
+            return {"program_id": program_id, "source_url": url, "error": error}
+
         raw_json = json.dumps(full_json_data)
         full_json_payload = None
 
         for key, value in full_json_data.items():
-            if isinstance(value, dict) and 'b' in value and isinstance(value['b'], dict) and 'data' in value['b']:
+            if (
+                isinstance(value, dict) and 'b' in value and
+                isinstance(value['b'], dict) and 'data' in value['b'] and
+                isinstance(value['b']['data'], list) and value['b']['data'] and
+                isinstance(value['b']['data'][0], dict) and 'attributes' in value['b']['data'][0]
+            ):
                 full_json_payload = value
                 break
 
         if not full_json_payload:
-            return {"program_id": program_id, "source_url": url, "error": "Missing main JSON payload"}
+            error = "Missing or invalid program payload structure"
+            logging.error(error)
+            if EXIT_ON_ERRORS:
+                raise ValueError(error)
+            return {"program_id": program_id, "source_url": url, "error": error}
 
         api_data = full_json_payload.get('b', {})
         program_nodes = api_data.get('data', [])
         if not program_nodes or not isinstance(program_nodes, list):
-            return {"program_id": program_id, "source_url": url, "error": "Missing program data"}
+            error = "Missing program data"
+            logging.error(error)
+            if EXIT_ON_ERRORS:
+                raise ValueError(error)
+            return {"program_id": program_id, "source_url": url, "error": error}
 
         program_node = program_nodes[0]
         included_nodes = api_data.get('included', [])
@@ -88,7 +123,6 @@ def extract_program_detail(page, program_id):
 
         if survey_node:
             survey_attrs = survey_node.get('attributes', {})
-            survey_rels = survey_node.get('relationships', {})
             extracted_data.update({
                 'first_year_positions': survey_attrs.get('field_first_year_positions'),
                 'interviews_conducted_last_year': survey_attrs.get('field_interviews_conducted'),
@@ -110,6 +144,8 @@ def extract_program_detail(page, program_id):
 
     except Exception as e:
         logging.warning(f"Error loading program ID {program_id}: {e}")
+        if EXIT_ON_ERRORS:
+            raise
         return {"program_id": program_id, "source_url": url, "error": str(e)}
 
 
@@ -126,13 +162,13 @@ def visit_all_program_ids():
             result = extract_program_detail(page, row["program_id"])
             all_programs.append(result)
 
-            if (idx + 1) % 25 == 0:
+            if (idx + 1) % 25 == 0 or idx == 1:
                 df_partial = pd.DataFrame(all_programs)
                 partial_file = f"freida_partial_{idx + 1}.csv"
                 df_partial.to_csv(partial_file, index=False)
                 logging.info(f"📄 Saved checkpoint to {partial_file}")
 
-            time.sleep(2.0)  # Added sleep for reliability
+            time.sleep(2.0)
 
         browser.close()
 
@@ -150,4 +186,5 @@ if __name__ == "__main__":
             logging.warning("⚠️ No data scraped.")
     except Exception as e:
         logging.critical(f"Unexpected error: {e}")
+        sys.exit(1)
 
