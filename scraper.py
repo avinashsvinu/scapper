@@ -73,6 +73,7 @@ def extract_program_detail(page, program_id):
                 survey_node = find_included_node(survey_ref_data.get('type'), survey_ref_data.get('id'), included_nodes)
         if survey_node:
             survey_attrs = survey_node.get('attributes', {})
+            survey_rels = survey_node.get('relationships', {})
             extracted_data.update({
                 'first_year_positions': survey_attrs.get('field_first_year_positions'),
                 'interviews_conducted_last_year': survey_attrs.get('field_interviews_conducted'),
@@ -89,29 +90,49 @@ def extract_program_detail(page, program_id):
                 'participates_in_eras': survey_attrs.get('field_participates_in_eras'),
                 'visa_statuses_accepted': survey_attrs.get('field_visa_status')
             })
+            # Extract all director info
+            director_ref = survey_rels.get('field_program_director', {}).get('data', {})
+            if isinstance(director_ref, dict):
+                director_node = find_included_node(director_ref.get('type'), director_ref.get('id'), included_nodes)
+                if director_node:
+                    dir_attrs = director_node.get('attributes', {})
+                    dir_addr = dir_attrs.get('field_address', {}) or {}
+                    extracted_data['program_director_first_name'] = dir_attrs.get('field_first_name')
+                    extracted_data['program_director_middle_name'] = dir_attrs.get('field_middle_name')
+                    extracted_data['program_director_last_name'] = dir_attrs.get('field_last_name')
+                    extracted_data['program_director_suffix'] = dir_attrs.get('field_suffix')
+                    extracted_data['program_director_degrees'] = dir_attrs.get('field_degrees')
+                    extracted_data['program_director_organization'] = dir_addr.get('organization')
+                    extracted_data['program_director_address_line1'] = dir_addr.get('address_line1')
+                    extracted_data['program_director_address_line2'] = dir_addr.get('address_line2')
+                    extracted_data['program_director_locality'] = dir_addr.get('locality')
+                    extracted_data['program_director_administrative_area'] = dir_addr.get('administrative_area')
+                    extracted_data['program_director_postal_code'] = dir_addr.get('postal_code')
+                    extracted_data['program_director_email'] = dir_attrs.get('field_email')
+                    extracted_data['program_director_phone'] = dir_attrs.get('field_phone')
+            # Extract all contact info
+            contact_ref = survey_rels.get('field_program_contact', {}).get('data', {})
+            if isinstance(contact_ref, dict):
+                contact_node = find_included_node(contact_ref.get('type'), contact_ref.get('id'), included_nodes)
+                if contact_node:
+                    contact_attrs = contact_node.get('attributes', {})
+                    contact_addr = contact_attrs.get('field_address', {}) or {}
+                    extracted_data['contact_first_name'] = contact_attrs.get('field_first_name')
+                    extracted_data['contact_middle_name'] = contact_attrs.get('field_middle_name')
+                    extracted_data['contact_last_name'] = contact_attrs.get('field_last_name')
+                    extracted_data['contact_suffix'] = contact_attrs.get('field_suffix')
+                    extracted_data['contact_degrees'] = contact_attrs.get('field_degrees')
+                    extracted_data['contact_organization'] = contact_addr.get('organization')
+                    extracted_data['contact_address_line1'] = contact_addr.get('address_line1')
+                    extracted_data['contact_address_line2'] = contact_addr.get('address_line2')
+                    extracted_data['contact_locality'] = contact_addr.get('locality')
+                    extracted_data['contact_administrative_area'] = contact_addr.get('administrative_area')
+                    extracted_data['contact_postal_code'] = contact_addr.get('postal_code')
+                    extracted_data['contact_email'] = contact_attrs.get('field_email')
+                    extracted_data['contact_phone'] = contact_attrs.get('field_phone')
         specialty_ref = prog_rels.get('field_specialty', {}).get('data', {})
         specialty_node = find_included_node(specialty_ref.get('type'), specialty_ref.get('id'), included_nodes) if isinstance(specialty_ref, dict) else None
         extracted_data['specialty_title'] = specialty_node.get('attributes', {}).get('title') if specialty_node else None
-        # Program director
-        director_ref = prog_rels.get('field_program_director', {}).get('data', {})
-        if isinstance(director_ref, dict):
-            director_node = find_included_node(director_ref.get('type'), director_ref.get('id'), included_nodes)
-            if director_node:
-                dir_attrs = director_node.get('attributes', {})
-                extracted_data['program_director_email'] = dir_attrs.get('field_email')
-                extracted_data['program_director_phone'] = dir_attrs.get('field_phone')
-                if not extracted_data['program_director_email'] and EXIT_ON_ERRORS:
-                    raise ValueError("Missing program director email")
-        # Contact person
-        contact_ref = prog_rels.get('field_program_contact', {}).get('data', {})
-        if isinstance(contact_ref, dict):
-            contact_node = find_included_node(contact_ref.get('type'), contact_ref.get('id'), included_nodes)
-            if contact_node:
-                contact_attrs = contact_node.get('attributes', {})
-                extracted_data['contact_email'] = contact_attrs.get('field_email')
-                extracted_data['contact_phone'] = contact_attrs.get('field_phone')
-                if not extracted_data['contact_email'] and EXIT_ON_ERRORS:
-                    raise ValueError("Missing contact person email")
         # Fill all expected fields
         EXPECTED_FIELDS = [
             'program_id', 'source_url', 'program_name_suffix', 'city', 'state', 'data_last_updated',
@@ -121,7 +142,14 @@ def extract_program_detail(page, program_id):
             'program_best_described_as', 'website', 'special_features_text',
             'accepting_applications_2025_2026', 'accepting_applications_2026_2027',
             'program_start_dates', 'participates_in_eras', 'visa_statuses_accepted',
-            'program_director_email', 'program_director_phone', 'contact_email', 'contact_phone'
+            'program_director_first_name', 'program_director_middle_name', 'program_director_last_name',
+            'program_director_suffix', 'program_director_degrees', 'program_director_organization',
+            'program_director_address_line1', 'program_director_address_line2', 'program_director_locality',
+            'program_director_administrative_area', 'program_director_postal_code', 'program_director_email',
+            'program_director_phone', 'contact_first_name', 'contact_middle_name', 'contact_last_name',
+            'contact_suffix', 'contact_degrees', 'contact_organization', 'contact_address_line1',
+            'contact_address_line2', 'contact_locality', 'contact_administrative_area', 'contact_postal_code',
+            'contact_email', 'contact_phone'
         ]
         for field in EXPECTED_FIELDS:
             if field not in extracted_data:

@@ -44,7 +44,14 @@ def main():
                     'program_best_described_as', 'website', 'special_features_text',
                     'accepting_applications_2025_2026', 'accepting_applications_2026_2027',
                     'program_start_dates', 'participates_in_eras', 'visa_statuses_accepted',
-                    'program_director_email', 'program_director_phone', 'contact_email', 'contact_phone'
+                    'program_director_first_name', 'program_director_middle_name', 'program_director_last_name',
+                    'program_director_suffix', 'program_director_degrees', 'program_director_organization',
+                    'program_director_address_line1', 'program_director_address_line2', 'program_director_locality',
+                    'program_director_administrative_area', 'program_director_postal_code', 'program_director_email',
+                    'program_director_phone', 'contact_first_name', 'contact_middle_name', 'contact_last_name',
+                    'contact_suffix', 'contact_degrees', 'contact_organization', 'contact_address_line1',
+                    'contact_address_line2', 'contact_locality', 'contact_administrative_area', 'contact_postal_code',
+                    'contact_email', 'contact_phone'
                 ]
                 for field in EXPECTED_FIELDS:
                     if field not in partial_df.columns:
@@ -68,7 +75,14 @@ def main():
         'program_best_described_as', 'website', 'special_features_text',
         'accepting_applications_2025_2026', 'accepting_applications_2026_2027',
         'program_start_dates', 'participates_in_eras', 'visa_statuses_accepted',
-        'program_director_email', 'program_director_phone', 'contact_email', 'contact_phone'
+        'program_director_first_name', 'program_director_middle_name', 'program_director_last_name',
+        'program_director_suffix', 'program_director_degrees', 'program_director_organization',
+        'program_director_address_line1', 'program_director_address_line2', 'program_director_locality',
+        'program_director_administrative_area', 'program_director_postal_code', 'program_director_email',
+        'program_director_phone', 'contact_first_name', 'contact_middle_name', 'contact_last_name',
+        'contact_suffix', 'contact_degrees', 'contact_organization', 'contact_address_line1',
+        'contact_address_line2', 'contact_locality', 'contact_administrative_area', 'contact_postal_code',
+        'contact_email', 'contact_phone'
     ]
     for field in EXPECTED_FIELDS:
         if field not in df.columns:

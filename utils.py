@@ -1,8 +1,6 @@
 def find_included_node(type_name, node_id, included_list):
-    if not type_name or not node_id:
-        return None
     for node in included_list:
-        if isinstance(node, dict) and node.get('type') == type_name and node.get('id') == node_id:
+        if node.get('type') == type_name and node.get('id') == node_id:
             return node
     return None
 

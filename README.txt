@@ -33,3 +33,26 @@ This project logs into a website using credentials stored in a `.env` file, save
 pip install -r requirements.txt
 playwright install
 
+
+```
+
+## Architecture & Flow Chart
+
+```mermaid
+flowchart TD
+    A[Start: main.py] --> B[Read program IDs CSV]
+    B --> C[Launch Playwright browser]
+    C --> D[For each program ID]
+    D --> E[Visit program detail page]
+    E --> F[Extract ng-state JSON]
+    F --> G[Parse JSON: find program node]
+    G --> H[Find survey node via field_survey]
+    H --> I[Extract director/contact info from included]
+    I --> J[Assemble all fields]
+    J --> K[Write to partial CSV]
+    K --> L{More IDs?}
+    L -- Yes --> D
+    L -- No --> M[Write final CSV]
+    M --> N[End]
+```
+
