@@ -1,0 +1,295 @@
+[DEBUG] Starting script. Current working dir: /Users/avinash.sridhar/scrapper
+[DEBUG] Read 689 rows from freida_programs_output.csv
+[DEBUG] Processing 1403521292 (1/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1403521292
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1403521292: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=875">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1403521292: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1402411169 (2/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1402411169
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1402411169: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=1686">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1402411169: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1403521301 (3/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1403521301
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1403521301: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=877">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1403521301: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1402421172 (4/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1402421172
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1402421172: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=1696">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1402421172: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1404121380 (5/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1404121380
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1404121380: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=1232">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1404121380: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1402621208 (6/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1402621208
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1402621208: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=1721">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1402621208: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1405421434 (7/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1405421434
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1405421434: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=1427">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1405421434: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1404821419 (8/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1404821419
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1404821419: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=1272">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1404821419: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1400821085 (9/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1400821085
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1400821085: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=1339">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1400821085: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Processing 1401221105 (10/10)...
+[DEBUG] Navigating to https://apps.acgme.org/ads/Public/Programs/Search for program_id=1401221105
+[DEBUG] Body text after search:  
+ Back To Public
+Accreditation Council for Graduate Medical Education (ACGME) - Public
+Advanced Program Search
+Search
+or
+Accreditation
+Osteopathic Recognition
+Accreditation
+Search by Specialty
+Allerg
+[WARN] Click failed for 1401221105: Locator.click: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+    - locator resolved to <a class="btn btn-sm listview-item-action btn-primary" href="/ads/Public/Programs/AccreditationHistoryReport?programId=1496">View Accreditation History</a>
+  - attempting click action
+    - scrolling into view if needed
+    - done scrolling
+    - forcing action
+    - performing click action
+    - click action done
+    - waiting for scheduled navigations to finish
+
+[ERROR] Fallback navigation failed for 1401221105: Locator.get_attribute: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("text=\"View Accreditation History\"").first
+
+[DEBUG] Academic years collected: [None, None, None, None, None, None, None, None, None, None]
+[DEBUG] Output written to /Users/avinash.sridhar/scrapper/freida_programs_output_with_academic_year.csv
+[DEBUG] Script finished.
