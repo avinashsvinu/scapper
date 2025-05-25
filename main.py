@@ -35,6 +35,21 @@ def main():
 
             if (idx + 1) % checkpoint_interval == 0 or idx == 1:
                 partial_df = pd.DataFrame(all_results)
+                # Ensure columns are always in the same order as EXPECTED_FIELDS
+                EXPECTED_FIELDS = [
+                    'program_id', 'source_url', 'program_name_suffix', 'city', 'state', 'data_last_updated',
+                    'accredited_training_length', 'required_training_length', 'affiliated_us_government',
+                    'raw_ng_state_json', 'specialty_title', 'first_year_positions',
+                    'interviews_conducted_last_year', 'avg_hours_on_duty_y1', 'pct_do', 'pct_img', 'pct_usmd',
+                    'program_best_described_as', 'website', 'special_features_text',
+                    'accepting_applications_2025_2026', 'accepting_applications_2026_2027',
+                    'program_start_dates', 'participates_in_eras', 'visa_statuses_accepted',
+                    'program_director_email', 'program_director_phone', 'contact_email', 'contact_phone'
+                ]
+                for field in EXPECTED_FIELDS:
+                    if field not in partial_df.columns:
+                        partial_df[field] = None
+                partial_df = partial_df[EXPECTED_FIELDS]
                 filename = f"freida_partial_{idx + 1}.csv" if (idx + 1) % checkpoint_interval == 0 else partial_csv
                 partial_df.to_csv(filename, index=False)
                 logging.info(f"Saved checkpoint to {filename}")
@@ -45,6 +60,20 @@ def main():
         browser.close()
 
     df = pd.DataFrame(all_results)
+    EXPECTED_FIELDS = [
+        'program_id', 'source_url', 'program_name_suffix', 'city', 'state', 'data_last_updated',
+        'accredited_training_length', 'required_training_length', 'affiliated_us_government',
+        'raw_ng_state_json', 'specialty_title', 'first_year_positions',
+        'interviews_conducted_last_year', 'avg_hours_on_duty_y1', 'pct_do', 'pct_img', 'pct_usmd',
+        'program_best_described_as', 'website', 'special_features_text',
+        'accepting_applications_2025_2026', 'accepting_applications_2026_2027',
+        'program_start_dates', 'participates_in_eras', 'visa_statuses_accepted',
+        'program_director_email', 'program_director_phone', 'contact_email', 'contact_phone'
+    ]
+    for field in EXPECTED_FIELDS:
+        if field not in df.columns:
+            df[field] = None
+    df = df[EXPECTED_FIELDS]
     df.to_csv(output_csv, index=False)
     logging.info(f"✅ Completed scrape. Data saved to {output_csv}")
 

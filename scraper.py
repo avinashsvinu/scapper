@@ -29,28 +29,29 @@ def extract_program_detail(page, program_id):
 
         full_json_data = json.loads(script_tag.string)
         raw_json = json.dumps(full_json_data)
-
-        full_json_payload = next(
-            (value for key, value in full_json_data.items()
-             if isinstance(value, dict) and 'b' in value and isinstance(value['b'], dict) and 'data' in value['b']
-             and isinstance(value['b']['data'], list) and any(n.get("type") == "node--program" for n in value['b']['data'])),
-            None
-        )
-
+        full_json_payload = None
+        for key, value in full_json_data.items():
+            if (
+                isinstance(value, dict) and 'b' in value and
+                isinstance(value['b'], dict) and 'data' in value['b'] and
+                isinstance(value['b']['data'], list) and any(
+                    n.get("type") == "node--program" for n in value['b']['data'] if isinstance(n, dict)
+                )
+            ):
+                full_json_payload = value
+                break
         if not full_json_payload:
             raise ValueError("Missing or invalid program payload structure")
-
-        api_data = full_json_payload['b']
+        api_data = full_json_payload.get('b', {})
         program_nodes = api_data.get('data', [])
-        included_nodes = api_data.get('included', [])
-
+        if not program_nodes or not isinstance(program_nodes, list):
+            raise ValueError("Missing program data")
         program_node = next((node for node in program_nodes if node.get("type") == "node--program"), None)
         if not program_node:
             raise ValueError("No node--program found in JSON")
-
+        included_nodes = api_data.get('included', [])
         prog_attrs = program_node.get('attributes', {})
         prog_rels = program_node.get('relationships', {})
-
         extracted_data = {
             'program_id': prog_attrs.get('field_program_id'),
             'source_url': url,
@@ -63,15 +64,15 @@ def extract_program_detail(page, program_id):
             'affiliated_us_government': prog_attrs.get('field_affiliated_us_gov'),
             'raw_ng_state_json': raw_json if DEBUG_MODE else None
         }
-
-        specialty_ref = prog_rels.get('field_specialty', {}).get('data', {})
-        specialty_node = find_included_node(specialty_ref.get('type'), specialty_ref.get('id'), included_nodes) if isinstance(specialty_ref, dict) else None
-        extracted_data['specialty_title'] = specialty_node.get('attributes', {}).get('title') if specialty_node else None
-
-        survey_node = next((n for n in included_nodes if n.get("type", "").startswith("paragraph--survey_data")), None)
+        # Find survey node via field_survey relationship
+        survey_ref_data_list = prog_rels.get('field_survey', {}).get('data', [])
+        survey_node = None
+        if survey_ref_data_list and isinstance(survey_ref_data_list, list):
+            survey_ref_data = survey_ref_data_list[0]
+            if survey_ref_data and isinstance(survey_ref_data, dict):
+                survey_node = find_included_node(survey_ref_data.get('type'), survey_ref_data.get('id'), included_nodes)
         if survey_node:
             survey_attrs = survey_node.get('attributes', {})
-            survey_rels = survey_node.get('relationships', {})
             extracted_data.update({
                 'first_year_positions': survey_attrs.get('field_first_year_positions'),
                 'interviews_conducted_last_year': survey_attrs.get('field_interviews_conducted'),
@@ -81,20 +82,51 @@ def extract_program_detail(page, program_id):
                 'pct_usmd': survey_attrs.get('field_pct_usmd'),
                 'program_best_described_as': survey_attrs.get('field_program_best_described_as'),
                 'website': survey_attrs.get('field_website'),
-                'special_features_text': survey_attrs.get('field_special_features', {}).get('value')
-                    if isinstance(survey_attrs.get('field_special_features'), dict) else None,
+                'special_features_text': survey_attrs.get('field_special_features', {}).get('value') if isinstance(survey_attrs.get('field_special_features'), dict) else None,
                 'accepting_applications_2025_2026': survey_attrs.get('field_accepting_current_year'),
                 'accepting_applications_2026_2027': survey_attrs.get('field_accepting_next_year'),
                 'program_start_dates': survey_attrs.get('field_program_start_dates'),
                 'participates_in_eras': survey_attrs.get('field_participates_in_eras'),
                 'visa_statuses_accepted': survey_attrs.get('field_visa_status')
             })
-
-            extract_contact_details('field_program_director', survey_rels, included_nodes, extracted_data)
-            extract_contact_details('field_program_contact', survey_rels, included_nodes, extracted_data)
-
+        specialty_ref = prog_rels.get('field_specialty', {}).get('data', {})
+        specialty_node = find_included_node(specialty_ref.get('type'), specialty_ref.get('id'), included_nodes) if isinstance(specialty_ref, dict) else None
+        extracted_data['specialty_title'] = specialty_node.get('attributes', {}).get('title') if specialty_node else None
+        # Program director
+        director_ref = prog_rels.get('field_program_director', {}).get('data', {})
+        if isinstance(director_ref, dict):
+            director_node = find_included_node(director_ref.get('type'), director_ref.get('id'), included_nodes)
+            if director_node:
+                dir_attrs = director_node.get('attributes', {})
+                extracted_data['program_director_email'] = dir_attrs.get('field_email')
+                extracted_data['program_director_phone'] = dir_attrs.get('field_phone')
+                if not extracted_data['program_director_email'] and EXIT_ON_ERRORS:
+                    raise ValueError("Missing program director email")
+        # Contact person
+        contact_ref = prog_rels.get('field_program_contact', {}).get('data', {})
+        if isinstance(contact_ref, dict):
+            contact_node = find_included_node(contact_ref.get('type'), contact_ref.get('id'), included_nodes)
+            if contact_node:
+                contact_attrs = contact_node.get('attributes', {})
+                extracted_data['contact_email'] = contact_attrs.get('field_email')
+                extracted_data['contact_phone'] = contact_attrs.get('field_phone')
+                if not extracted_data['contact_email'] and EXIT_ON_ERRORS:
+                    raise ValueError("Missing contact person email")
+        # Fill all expected fields
+        EXPECTED_FIELDS = [
+            'program_id', 'source_url', 'program_name_suffix', 'city', 'state', 'data_last_updated',
+            'accredited_training_length', 'required_training_length', 'affiliated_us_government',
+            'raw_ng_state_json', 'specialty_title', 'first_year_positions',
+            'interviews_conducted_last_year', 'avg_hours_on_duty_y1', 'pct_do', 'pct_img', 'pct_usmd',
+            'program_best_described_as', 'website', 'special_features_text',
+            'accepting_applications_2025_2026', 'accepting_applications_2026_2027',
+            'program_start_dates', 'participates_in_eras', 'visa_statuses_accepted',
+            'program_director_email', 'program_director_phone', 'contact_email', 'contact_phone'
+        ]
+        for field in EXPECTED_FIELDS:
+            if field not in extracted_data:
+                extracted_data[field] = None
         return extracted_data
-
     except Exception as e:
         logging.warning(f"Error loading program ID {program_id}: {e}")
         if EXIT_ON_ERRORS:
