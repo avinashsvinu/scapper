@@ -22,7 +22,7 @@
   python3 acgme_scraper.py --failed-record 1405621446,1400500932
   ```
 
-## Architecture & Flow Chart
+## Updated Flow Chart
 
 ```mermaid
 flowchart TD
@@ -31,25 +31,32 @@ flowchart TD
     C --> D[For each program ID (all, failed, or specific)]
     D --> E[Visit program detail page]
     E --> F[Try to click 'View Accreditation History' (human-like)]
-    F --> G[If click fails, try all fallbacks]
-    G --> H[If page loads, extract academic year from table]
-    H --> I{Valid year found?}
-    I -- Yes --> J[Write to main CSV]
-    I -- No --> K[Take screenshot, run OCR]
-    K --> L{OCR finds year?}
-    L -- Yes --> J
-    L -- No --> M[Log as failed]
-    J --> N{More IDs?}
-    N -- Yes --> D
-    N -- No --> O[Write final CSVs: success & failed]
-    O --> P[End]
-``` 
+    F --> G{Click success?}
+    G -- Yes --> H[Extract academic year from table]
+    G -- No --> I[Take screenshot, run OCR]
+    I --> J{OCR finds valid year?}
+    J -- Yes --> K[Write to main CSV]
+    J -- No --> L[Try other click fallbacks]
+    L --> M{Fallback success?}
+    M -- Yes --> H
+    M -- No --> N[Log as failed]
+    H --> O{Valid year found?}
+    O -- Yes --> K
+    O -- No --> I
+    K --> P{More IDs?}
+    P -- Yes --> D
+    P -- No --> Q[Write final CSVs: success & failed]
+    Q --> R[End]
+```
 
 ## Nuances & Best Practices
 
 - **Batch Size:** By default, the script processes 5 random records per run (can be changed in the code). This helps avoid overloading the site and makes debugging easier.
 - **Skipping Already Collected Records:** The script always skips records that already have an academic year, ensuring no duplicate work or overwriting of good data.
-- **Navigation Robustness:** If a click to 'View Accreditation History' fails but the browser has already navigated to the correct page, the script detects this and continues extraction. This handles edge cases where Playwright's click or wait times out but navigation succeeded.
+- **Navigation & OCR Robustness:**
+  - If clicking 'View Accreditation History' fails, a screenshot is taken and OCR is attempted immediately.
+  - The OCR logic will skip '-' and use the next valid academic year found in the image.
+  - If OCR fails, the script tries other click fallbacks and logs as failed only if all options are exhausted.
 - **Output File Management:**
   - `freida_programs_output_success.csv`: All records with a valid academic year (successes).
   - `freida_programs_output_failed.csv`: All records still missing an academic year (failures).
@@ -61,11 +68,11 @@ flowchart TD
   - To process all failed records one at a time, loop over the IDs and call the script with `--failed-record` for each.
 - **Debugging:**
   - Debug screenshots and HTML are saved for failed or edge cases.
-  - OCR fallback is used if DOM extraction fails.
+  - OCR fallback is used if DOM extraction fails, and now robustly skips '-' rows.
 - **Usage Tips:**
   - For large datasets, run the script multiple times to gradually fill in missing data.
   - You can safely interrupt and resume scraping; already-scraped records will be skipped.
-  - All logs should be stored in the `logs/` directory (excluded from git). 
+  - All logs should be stored in the `logs/` directory (excluded from git).
 
 ## Automation: Process All Records in Batches
 
