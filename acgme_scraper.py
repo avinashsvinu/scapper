@@ -13,6 +13,8 @@ import re
 ACGME_URL = "https://apps.acgme.org/ads/Public/Programs/Search"
 CSV_FILE = "freida_programs_output.csv"
 NEW_CSV_FILE = "freida_programs_output_with_academic_year.csv"
+SUCCESS_CSV_FILE = "freida_programs_output_success.csv"
+FAILED_CSV_FILE = "freida_programs_output_failed.csv"
 
 
 def human_like_click(page, locator):
@@ -222,13 +224,13 @@ def main():
     args = parser.parse_args()
 
     print(f"[DEBUG] Starting script. Current working dir: {os.getcwd()}")
-    # If --failed-record is set, only process those program_ids from the output CSV
+    # If --failed-record is set, only process those program_ids from the failed CSV
     if args.failed_record:
-        if not os.path.exists(NEW_CSV_FILE):
-            print(f"[ERROR] Output CSV file '{NEW_CSV_FILE}' not found for --failed-record.")
+        if not os.path.exists(FAILED_CSV_FILE):
+            print(f"[ERROR] Failed CSV file '{FAILED_CSV_FILE}' not found for --failed-record.")
             sys.exit(1)
-        df = pd.read_csv(NEW_CSV_FILE)
-        print(f"[DEBUG] Read {len(df)} rows from {NEW_CSV_FILE}")
+        df = pd.read_csv(FAILED_CSV_FILE)
+        print(f"[DEBUG] Read {len(df)} rows from {FAILED_CSV_FILE}")
         id_list = [x.strip() for x in args.failed_record.split(',') if x.strip()]
         failed_df = df[df['program_id'].astype(str).isin(id_list)]
         print(f"[DEBUG] Found {len(failed_df)} records to retry by --failed-record: {id_list}")
@@ -236,17 +238,12 @@ def main():
             print("[DEBUG] No matching records to process. Exiting.")
             return
         process_df = failed_df.copy()
-        output_file = NEW_CSV_FILE
-    elif args.failed_only and os.path.exists(NEW_CSV_FILE):
-        df = pd.read_csv(NEW_CSV_FILE)
-        print(f"[DEBUG] Read {len(df)} rows from {NEW_CSV_FILE}")
-        failed_df = df[df['acgme_first_academic_year'].isnull() | (df['acgme_first_academic_year'].astype(str).str.strip() == '')]
-        print(f"[DEBUG] Found {len(failed_df)} failed records to retry.")
-        if len(failed_df) == 0:
-            print("[DEBUG] No failed records to process. Exiting.")
-            return
-        process_df = failed_df.copy()
-        output_file = NEW_CSV_FILE
+        output_file = FAILED_CSV_FILE
+    elif args.failed_only and os.path.exists(FAILED_CSV_FILE):
+        df = pd.read_csv(FAILED_CSV_FILE)
+        print(f"[DEBUG] Read {len(df)} rows from {FAILED_CSV_FILE}")
+        process_df = df.copy()
+        output_file = FAILED_CSV_FILE
     else:
         df = pd.read_csv(CSV_FILE)
         print(f"[DEBUG] Read {len(df)} rows from {CSV_FILE}")
@@ -285,13 +282,28 @@ def main():
     if 'acgme_first_academic_year' in iter_df.columns:
         iter_df = iter_df.drop(columns=['acgme_first_academic_year'])
     iter_df.insert(0, 'acgme_first_academic_year', academic_years)
-    # If failed-only or failed-record, update the original file with new results
-    if args.failed_record or args.failed_only:
-        df.update(iter_df)
-        df.to_csv(output_file, index=False)
+    # After updating the output file, always update the main, success, and failed CSVs for consistency
+    if output_file == FAILED_CSV_FILE:
+        # Update the main output file with any new successes
+        if os.path.exists(NEW_CSV_FILE):
+            main_df = pd.read_csv(NEW_CSV_FILE)
+            # Update main_df with any successes from this run
+            for idx, row in iter_df.iterrows():
+                pid = row['program_id']
+                year = row['acgme_first_academic_year'] if 'acgme_first_academic_year' in row else None
+                if year and str(year).strip():
+                    main_df.loc[main_df['program_id'] == pid, 'acgme_first_academic_year'] = year
+            main_df.to_csv(NEW_CSV_FILE, index=False)
+            df_full = main_df
+        else:
+            df_full = iter_df
     else:
-        iter_df.to_csv(output_file, index=False)
-    print(f"[DEBUG] Output written to {os.path.abspath(output_file)}")
+        df_full = pd.read_csv(output_file)
+    success_df = df_full[df_full['acgme_first_academic_year'].notnull() & (df_full['acgme_first_academic_year'].astype(str).str.strip() != '')]
+    failed_df = df_full[df_full['acgme_first_academic_year'].isnull() | (df_full['acgme_first_academic_year'].astype(str).str.strip() == '')]
+    success_df.to_csv(SUCCESS_CSV_FILE, index=False)
+    failed_df.to_csv(FAILED_CSV_FILE, index=False)
+    print(f"[DEBUG] Wrote {len(success_df)} good records to {SUCCESS_CSV_FILE} and {len(failed_df)} failed records to {FAILED_CSV_FILE}")
     sys.stdout.flush()
     print("[DEBUG] Script finished.")
     sys.stdout.flush()
