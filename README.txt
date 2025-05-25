@@ -66,3 +66,24 @@ flowchart TD
   - For large datasets, run the script multiple times to gradually fill in missing data.
   - You can safely interrupt and resume scraping; already-scraped records will be skipped.
   - All logs should be stored in the `logs/` directory (excluded from git). 
+
+## Automation: Process All Records in Batches
+
+To process all 600+ records efficiently, use the provided automation script:
+
+### `run_all.sh`
+
+- **What it does:**
+  - Runs the scraper in batches of 5, skipping already completed records.
+  - When only a few failures remain, it processes each failed record one at a time.
+  - Continues until all records are completed and all failures are resolved.
+
+### Usage
+
+```bash
+./run_all.sh
+```
+
+- You can safely interrupt and resume the script; it will always skip already-completed records.
+- The script prints progress and will not stop until all records are processed.
+- All output and debug files are managed as described above. 
