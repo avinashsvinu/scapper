@@ -55,12 +55,55 @@ def extract_year_from_image(image_path):
         return None
 
 
+def extract_academic_year_from_table(page, program_id, screenshot_path=None):
+    try:
+        page.wait_for_selector('table', timeout=30000)
+        rows = page.query_selector_all('table tr')
+        print(f"[DEBUG] Found {len(rows)} rows in accreditation table for {program_id}")
+        sys.stdout.flush()
+        if len(rows) > 1:
+            for i in range(1, len(rows)):
+                cells = rows[i].query_selector_all('td')
+                if cells:
+                    year = cells[0].inner_text().strip()
+                    if year and year != '-':
+                        print(f"[DEBUG] Extracted academic year: {year}")
+                        sys.stdout.flush()
+                        return year
+                    else:
+                        print(f"[DEBUG] Skipping invalid year '{year}' in row {i} for {program_id}")
+                        sys.stdout.flush()
+            print(f"[ERROR] No valid academic year found for {program_id}")
+            sys.stdout.flush()
+            if screenshot_path and os.path.exists(screenshot_path):
+                ocr_year = extract_year_from_image(screenshot_path)
+                if ocr_year:
+                    return ocr_year
+            return None
+        else:
+            print(f"[ERROR] No data rows found in table for {program_id}")
+            sys.stdout.flush()
+            if screenshot_path and os.path.exists(screenshot_path):
+                ocr_year = extract_year_from_image(screenshot_path)
+                if ocr_year:
+                    return ocr_year
+            return None
+    except Exception as e:
+        print(f"[ERROR] Exception in extract_academic_year_from_table for {program_id}: {e}")
+        sys.stdout.flush()
+        if screenshot_path and os.path.exists(screenshot_path):
+            ocr_year = extract_year_from_image(screenshot_path)
+            if ocr_year:
+                return ocr_year
+        return None
+
+
 def get_first_academic_year(page, program_id):
     print(f"[DEBUG] Navigating to {ACGME_URL} for program_id={program_id}")
     sys.stdout.flush()
     page.goto(ACGME_URL)
-    page.fill('input[type=\"text\"]', str(program_id))
-    page.press('input[type=\"text\"]', 'Enter')
+    page.fill('input[type="text"]', str(program_id))
+    page.press('input[type="text"]', 'Enter')
     page.wait_for_timeout(3500)
     body_text = page.inner_text('body')
     print(f"[DEBUG] Body text after search: {body_text[:200]}")
@@ -71,7 +114,7 @@ def get_first_academic_year(page, program_id):
         return None
     screenshot_path = None
     try:
-        locator = page.locator('text=\"View Accreditation History\"').first
+        locator = page.locator('text="View Accreditation History"').first
         locator.wait_for(state="attached", timeout=5000)
         locator.scroll_into_view_if_needed(timeout=2000)
         try:
@@ -82,9 +125,22 @@ def get_first_academic_year(page, program_id):
         except Exception as click_e:
             print(f"[WARN] Click by text locator failed for {program_id}: {click_e}")
             sys.stdout.flush()
+            # Check if already navigated to Accreditation History page
+            if "/AccreditationHistoryReport?programId=" in page.url:
+                print(f"[DEBUG] Already navigated to Accreditation History page for {program_id}, continuing extraction.")
+                sys.stdout.flush()
+                screenshot_path = f"debug_acgme_{program_id}.png"
+                try:
+                    page.screenshot(path=screenshot_path, full_page=True)
+                    print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+                    sys.stdout.flush()
+                except Exception as ss_e:
+                    print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+                    sys.stdout.flush()
+                return extract_academic_year_from_table(page, program_id, screenshot_path)
             # Fallback 2: Try by button class and text
             try:
-                btn_locator = page.locator('a.btn.btn-primary:has-text(\"View Accreditation History\")').first
+                btn_locator = page.locator('a.btn.btn-primary:has-text("View Accreditation History")').first
                 btn_locator.wait_for(state="attached", timeout=5000)
                 btn_locator.scroll_into_view_if_needed(timeout=2000)
                 with page.expect_navigation(timeout=30000):
@@ -94,6 +150,19 @@ def get_first_academic_year(page, program_id):
             except Exception as btn_e:
                 print(f"[WARN] Click by class+text failed for {program_id}: {btn_e}")
                 sys.stdout.flush()
+                # Check if already navigated to Accreditation History page
+                if "/AccreditationHistoryReport?programId=" in page.url:
+                    print(f"[DEBUG] Already navigated to Accreditation History page for {program_id}, continuing extraction.")
+                    sys.stdout.flush()
+                    screenshot_path = f"debug_acgme_{program_id}.png"
+                    try:
+                        page.screenshot(path=screenshot_path, full_page=True)
+                        print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+                        sys.stdout.flush()
+                    except Exception as ss_e:
+                        print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+                        sys.stdout.flush()
+                    return extract_academic_year_from_table(page, program_id, screenshot_path)
                 # Fallback 3: Parse all <a> tags and click the one with correct href/text
                 try:
                     anchors = page.query_selector_all('a')
@@ -133,6 +202,19 @@ def get_first_academic_year(page, program_id):
                 except Exception as a_e:
                     print(f"[ERROR] Fallback <a> parse/click failed for {program_id}: {a_e}")
                     sys.stdout.flush()
+                    # Check if already navigated to Accreditation History page
+                    if "/AccreditationHistoryReport?programId=" in page.url:
+                        print(f"[DEBUG] Already navigated to Accreditation History page for {program_id}, continuing extraction.")
+                        sys.stdout.flush()
+                        screenshot_path = f"debug_acgme_{program_id}.png"
+                        try:
+                            page.screenshot(path=screenshot_path, full_page=True)
+                            print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+                            sys.stdout.flush()
+                        except Exception as ss_e:
+                            print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+                            sys.stdout.flush()
+                        return extract_academic_year_from_table(page, program_id, screenshot_path)
                     return None
         # Take a screenshot for debugging
         try:
@@ -143,40 +225,7 @@ def get_first_academic_year(page, program_id):
         except Exception as ss_e:
             print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
             sys.stdout.flush()
-        page.wait_for_selector('table', timeout=30000)
-        rows = page.query_selector_all('table tr')
-        print(f"[DEBUG] Found {len(rows)} rows in accreditation table for {program_id}")
-        sys.stdout.flush()
-        if len(rows) > 1:
-            # Iterate rows until a valid academic year is found
-            for i in range(1, len(rows)):
-                cells = rows[i].query_selector_all('td')
-                if cells:
-                    year = cells[0].inner_text().strip()
-                    if year and year != '-':
-                        print(f"[DEBUG] Extracted academic year: {year}")
-                        sys.stdout.flush()
-                        return year
-                    else:
-                        print(f"[DEBUG] Skipping invalid year '{year}' in row {i} for {program_id}")
-                        sys.stdout.flush()
-            print(f"[ERROR] No valid academic year found for {program_id}")
-            sys.stdout.flush()
-            # OCR fallback if screenshot exists
-            if screenshot_path and os.path.exists(screenshot_path):
-                ocr_year = extract_year_from_image(screenshot_path)
-                if ocr_year:
-                    return ocr_year
-            return None
-        else:
-            print(f"[ERROR] No data rows found in table for {program_id}")
-            sys.stdout.flush()
-            # OCR fallback if screenshot exists
-            if screenshot_path and os.path.exists(screenshot_path):
-                ocr_year = extract_year_from_image(screenshot_path)
-                if ocr_year:
-                    return ocr_year
-            return None
+        return extract_academic_year_from_table(page, program_id, screenshot_path)
     except Exception as e:
         print(f"[ERROR] Exception for {program_id}: {e}")
         sys.stdout.flush()
@@ -255,13 +304,13 @@ def main():
         browser = p.chromium.launch(headless=False)  # Use non-headless for human-like
         context = browser.new_context()
         page = context.new_page()
-        # If --failed-record, process all specified; else, pick 10 random for testing, or all if failed-only
+        # If --failed-record, process all specified; else, pick 5 random for testing, or all if failed-only
         if args.failed_record:
             iter_df = process_df
         elif args.failed_only:
             iter_df = process_df
         else:
-            random_indices = random.sample(range(len(process_df)), min(10, len(process_df)))
+            random_indices = random.sample(range(len(process_df)), min(5, len(process_df)))
             iter_df = process_df.iloc[random_indices]
         for idx, row in iter_df.iterrows():
             program_id = row['program_id']

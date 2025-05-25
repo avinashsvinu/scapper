@@ -44,3 +44,25 @@ flowchart TD
     N -- No --> O[Write final CSVs: success & failed]
     O --> P[End]
 ``` 
+
+## Nuances & Best Practices
+
+- **Batch Size:** By default, the script processes 5 random records per run (can be changed in the code). This helps avoid overloading the site and makes debugging easier.
+- **Skipping Already Collected Records:** The script always skips records that already have an academic year, ensuring no duplicate work or overwriting of good data.
+- **Navigation Robustness:** If a click to 'View Accreditation History' fails but the browser has already navigated to the correct page, the script detects this and continues extraction. This handles edge cases where Playwright's click or wait times out but navigation succeeded.
+- **Output File Management:**
+  - `freida_programs_output_success.csv`: All records with a valid academic year (successes).
+  - `freida_programs_output_failed.csv`: All records still missing an academic year (failures).
+  - `freida_programs_output_with_academic_year.csv`: Main output, all records with updated academic year field.
+  - After each run, these files are kept in sync: successful records are moved from failed to success, and vice versa if needed.
+- **Processing Failed Records:**
+  - Use `--failed-only` to process all failed records in batch.
+  - Use `--failed-record <id>` to process a specific failed record.
+  - To process all failed records one at a time, loop over the IDs and call the script with `--failed-record` for each.
+- **Debugging:**
+  - Debug screenshots and HTML are saved for failed or edge cases.
+  - OCR fallback is used if DOM extraction fails.
+- **Usage Tips:**
+  - For large datasets, run the script multiple times to gradually fill in missing data.
+  - You can safely interrupt and resume scraping; already-scraped records will be skipped.
+  - All logs should be stored in the `logs/` directory (excluded from git). 
