@@ -216,16 +216,21 @@ def get_first_academic_year(page, program_id):
                             sys.stdout.flush()
                         return extract_academic_year_from_table(page, program_id, screenshot_path)
                     return None
-        # Take a screenshot for debugging
+        # Only take screenshot if extraction fails or is ambiguous
+        year = extract_academic_year_from_table(page, program_id, None)
+        if year is not None:
+            return year
+        # Extraction failed, take screenshot for debugging
+        screenshot_path = f"debug_acgme_{program_id}.png"
         try:
-            screenshot_path = f"debug_acgme_{program_id}.png"
             page.screenshot(path=screenshot_path, full_page=True)
             print(f"[DEBUG] Saved screenshot to {screenshot_path}")
             sys.stdout.flush()
         except Exception as ss_e:
             print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
             sys.stdout.flush()
-        return extract_academic_year_from_table(page, program_id, screenshot_path)
+            # Try again with screenshot for OCR fallback
+            return extract_academic_year_from_table(page, program_id, screenshot_path)
     except Exception as e:
         print(f"[ERROR] Exception for {program_id}: {e}")
         sys.stdout.flush()
