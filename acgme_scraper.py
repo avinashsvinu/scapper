@@ -216,13 +216,28 @@ def get_first_academic_year_with_retry(page, program_id, max_retries=3):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--failed-only', action='store_true', help='Only process records with missing academic year in output CSV')
+    parser.add_argument('--failed-record', type=str, help='Comma-separated list of program_ids to retry (overrides --failed-only if set)')
     args = parser.parse_args()
 
     print(f"[DEBUG] Starting script. Current working dir: {os.getcwd()}")
-    if args.failed_only and os.path.exists(NEW_CSV_FILE):
+    # If --failed-record is set, only process those program_ids from the output CSV
+    if args.failed_record:
+        if not os.path.exists(NEW_CSV_FILE):
+            print(f"[ERROR] Output CSV file '{NEW_CSV_FILE}' not found for --failed-record.")
+            sys.exit(1)
         df = pd.read_csv(NEW_CSV_FILE)
         print(f"[DEBUG] Read {len(df)} rows from {NEW_CSV_FILE}")
-        # Only select rows where acgme_first_academic_year is empty or null
+        id_list = [x.strip() for x in args.failed_record.split(',') if x.strip()]
+        failed_df = df[df['program_id'].astype(str).isin(id_list)]
+        print(f"[DEBUG] Found {len(failed_df)} records to retry by --failed-record: {id_list}")
+        if len(failed_df) == 0:
+            print("[DEBUG] No matching records to process. Exiting.")
+            return
+        process_df = failed_df.copy()
+        output_file = NEW_CSV_FILE
+    elif args.failed_only and os.path.exists(NEW_CSV_FILE):
+        df = pd.read_csv(NEW_CSV_FILE)
+        print(f"[DEBUG] Read {len(df)} rows from {NEW_CSV_FILE}")
         failed_df = df[df['acgme_first_academic_year'].isnull() | (df['acgme_first_academic_year'].astype(str).str.strip() == '')]
         print(f"[DEBUG] Found {len(failed_df)} failed records to retry.")
         if len(failed_df) == 0:
@@ -241,8 +256,10 @@ def main():
         browser = p.chromium.launch(headless=False)  # Use non-headless for human-like
         context = browser.new_context()
         page = context.new_page()
-        # Pick 10 random records for testing, or all if failed-only
-        if args.failed_only:
+        # If --failed-record, process all specified; else, pick 10 random for testing, or all if failed-only
+        if args.failed_record:
+            iter_df = process_df
+        elif args.failed_only:
             iter_df = process_df
         else:
             random_indices = random.sample(range(len(process_df)), min(10, len(process_df)))
@@ -263,10 +280,11 @@ def main():
     print(f"[DEBUG] Academic years collected: {academic_years}")
     sys.stdout.flush()
     iter_df = iter_df.copy()
+    if 'acgme_first_academic_year' in iter_df.columns:
+        iter_df = iter_df.drop(columns=['acgme_first_academic_year'])
     iter_df.insert(0, 'acgme_first_academic_year', academic_years)
-    # If failed-only, update the original file with new results
-    if args.failed_only:
-        # Update only the failed rows in the original file
+    # If failed-only or failed-record, update the original file with new results
+    if args.failed_record or args.failed_only:
         df.update(iter_df)
         df.to_csv(output_file, index=False)
     else:
