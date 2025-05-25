@@ -80,6 +80,16 @@ flowchart TD
   python3 acgme_scraper.py --failed-record 1405621446,1400500932
   ```
 
+## 🛠️ Utility: Fixing the Main CSV
+
+If you ever restore or modify your main CSV and it is missing the `acgme_first_academic_year` column, use the provided `fix_csv.py` script:
+
+```bash
+python3 fix_csv.py
+```
+
+This will add the column as the first column (with empty values) if missing, ensuring the scraper runs without errors.
+
 ## Updated Flow Chart
 
 ```mermaid
@@ -107,6 +117,34 @@ flowchart TD
     Q --> R[End]
 ```
 
+## Automation: Process All Records in Batches
+
+To process all 600+ records efficiently, use the provided automation script:
+
+### `run_all.sh`
+
+- **What it does:**
+  - Runs the scraper in batches of 5, skipping already completed records.
+  - When only a few failures remain, it processes each failed record one at a time using the `--failed-record` flag.
+  - Continues until all records are completed and all failures are resolved.
+  - Prints progress after each batch and after each individual retry.
+
+### Usage
+
+```bash
+./run_all.sh
+```
+
+- You can safely interrupt and resume the script; it will always skip already-completed records.
+- The script prints progress and will not stop until all records are processed.
+- All output and debug files are managed as described above.
+
+## Commit History & File Management
+
+- All output CSVs are always overwritten, never appended, to reflect the current state.
+- Debug screenshots and logs are saved in their respective directories and excluded from git.
+- The `fix_csv.py` utility is provided for quick repair of the main CSV structure if needed.
+
 ## Nuances & Best Practices
 
 - **Batch Size:** By default, the script processes 5 random records per run (can be changed in the code). This helps avoid overloading the site and makes debugging easier.
@@ -131,25 +169,4 @@ flowchart TD
   - For large datasets, run the script multiple times to gradually fill in missing data.
   - You can safely interrupt and resume scraping; already-scraped records will be skipped.
   - All logs should be stored in the `logs/` directory (excluded from git).
-
-## Automation: Process All Records in Batches
-
-To process all 600+ records efficiently, use the provided automation script:
-
-### `run_all.sh`
-
-- **What it does:**
-  - Runs the scraper in batches of 5, skipping already completed records.
-  - When only a few failures remain, it processes each failed record one at a time.
-  - Continues until all records are completed and all failures are resolved.
-
-### Usage
-
-```bash
-./run_all.sh
-```
-
-- You can safely interrupt and resume the script; it will always skip already-completed records.
-- The script prints progress and will not stop until all records are processed.
-- All output and debug files are managed as described above. 
 
