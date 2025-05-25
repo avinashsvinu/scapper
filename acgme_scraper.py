@@ -214,9 +214,11 @@ def get_first_academic_year_with_retry(page, program_id, max_retries=3):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--failed-only', action='store_true', help='Only process records with missing academic year in output CSV')
-    parser.add_argument('--failed-record', type=str, help='Comma-separated list of program_ids to retry (overrides --failed-only if set)')
+    parser = argparse.ArgumentParser(
+        description='Scrape ACGME academic years for programs. Supports retrying failed records and OCR fallback.'
+    )
+    parser.add_argument('--failed-only', action='store_true', help='Only process records with missing academic year in output CSV (freida_programs_output_with_academic_year.csv).')
+    parser.add_argument('--failed-record', type=str, help='Comma-separated list of program_ids to retry from output CSV (e.g., --failed-record 1405621446,1400500932). Overrides --failed-only if set.')
     args = parser.parse_args()
 
     print(f"[DEBUG] Starting script. Current working dir: {os.getcwd()}")
