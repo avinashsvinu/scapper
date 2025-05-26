@@ -40,15 +40,16 @@ def extract_year_from_image(image_path):
         text = pytesseract.image_to_string(Image.open(image_path))
         print(f"[DEBUG] OCR text from {image_path}:\n{text}")
         sys.stdout.flush()
-        match = re.search(r'\b(20\d{2} - 20\d{2})\b', text)
-        if match:
-            print(f"[DEBUG] Extracted academic year from OCR: {match.group(1)}")
-            sys.stdout.flush()
-            return match.group(1)
-        else:
-            print(f"[WARN] No academic year found in OCR text for {image_path}")
-            sys.stdout.flush()
-            return None
+        # Find all possible academic year matches
+        matches = re.findall(r'\b(20\d{2} - 20\d{2})\b', text)
+        for match in matches:
+            if match and match != '-':
+                print(f"[DEBUG] Extracted academic year from OCR: {match}")
+                sys.stdout.flush()
+                return match
+        print(f"[WARN] No valid academic year found in OCR text for {image_path}")
+        sys.stdout.flush()
+        return None
     except Exception as e:
         print(f"[ERROR] OCR failed for {image_path}: {e}")
         sys.stdout.flush()
@@ -75,14 +76,35 @@ def extract_academic_year_from_table(page, program_id, screenshot_path=None):
                         sys.stdout.flush()
             print(f"[ERROR] No valid academic year found for {program_id}")
             sys.stdout.flush()
+            # On failure, first take screenshot and try OCR
+            screenshot_path = f"debug_acgme_{program_id}.png"
+            try:
+                page.screenshot(path=screenshot_path, full_page=True)
+                print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+                sys.stdout.flush()
+            except Exception as ss_e:
+                print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+                sys.stdout.flush()
+                screenshot_path = None
             if screenshot_path and os.path.exists(screenshot_path):
                 ocr_year = extract_year_from_image(screenshot_path)
                 if ocr_year:
                     return ocr_year
+            # If OCR fails, return None (other fallbacks are handled in get_first_academic_year)
             return None
         else:
             print(f"[ERROR] No data rows found in table for {program_id}")
             sys.stdout.flush()
+            # On failure, first take screenshot and try OCR
+            screenshot_path = f"debug_acgme_{program_id}.png"
+            try:
+                page.screenshot(path=screenshot_path, full_page=True)
+                print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+                sys.stdout.flush()
+            except Exception as ss_e:
+                print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+                sys.stdout.flush()
+                screenshot_path = None
             if screenshot_path and os.path.exists(screenshot_path):
                 ocr_year = extract_year_from_image(screenshot_path)
                 if ocr_year:
@@ -91,6 +113,16 @@ def extract_academic_year_from_table(page, program_id, screenshot_path=None):
     except Exception as e:
         print(f"[ERROR] Exception in extract_academic_year_from_table for {program_id}: {e}")
         sys.stdout.flush()
+        # On failure, first take screenshot and try OCR
+        screenshot_path = f"debug_acgme_{program_id}.png"
+        try:
+            page.screenshot(path=screenshot_path, full_page=True)
+            print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+            sys.stdout.flush()
+        except Exception as ss_e:
+            print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+            sys.stdout.flush()
+            screenshot_path = None
         if screenshot_path and os.path.exists(screenshot_path):
             ocr_year = extract_year_from_image(screenshot_path)
             if ocr_year:
@@ -129,15 +161,21 @@ def get_first_academic_year(page, program_id):
             if "/AccreditationHistoryReport?programId=" in page.url:
                 print(f"[DEBUG] Already navigated to Accreditation History page for {program_id}, continuing extraction.")
                 sys.stdout.flush()
-                screenshot_path = f"debug_acgme_{program_id}.png"
-                try:
-                    page.screenshot(path=screenshot_path, full_page=True)
-                    print(f"[DEBUG] Saved screenshot to {screenshot_path}")
-                    sys.stdout.flush()
-                except Exception as ss_e:
-                    print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
-                    sys.stdout.flush()
-                return extract_academic_year_from_table(page, program_id, screenshot_path)
+                return extract_academic_year_from_table(page, program_id, None)
+            # If not navigated, take screenshot and try OCR before other fallbacks
+            screenshot_path = f"debug_acgme_{program_id}.png"
+            try:
+                page.screenshot(path=screenshot_path, full_page=True)
+                print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+                sys.stdout.flush()
+            except Exception as ss_e:
+                print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+                sys.stdout.flush()
+                screenshot_path = None
+            if screenshot_path and os.path.exists(screenshot_path):
+                ocr_year = extract_year_from_image(screenshot_path)
+                if ocr_year:
+                    return ocr_year
             # Fallback 2: Try by button class and text
             try:
                 btn_locator = page.locator('a.btn.btn-primary:has-text("View Accreditation History")').first
@@ -154,15 +192,21 @@ def get_first_academic_year(page, program_id):
                 if "/AccreditationHistoryReport?programId=" in page.url:
                     print(f"[DEBUG] Already navigated to Accreditation History page for {program_id}, continuing extraction.")
                     sys.stdout.flush()
-                    screenshot_path = f"debug_acgme_{program_id}.png"
-                    try:
-                        page.screenshot(path=screenshot_path, full_page=True)
-                        print(f"[DEBUG] Saved screenshot to {screenshot_path}")
-                        sys.stdout.flush()
-                    except Exception as ss_e:
-                        print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
-                        sys.stdout.flush()
-                    return extract_academic_year_from_table(page, program_id, screenshot_path)
+                    return extract_academic_year_from_table(page, program_id, None)
+                # If not navigated, take screenshot and try OCR before other fallbacks
+                screenshot_path = f"debug_acgme_{program_id}.png"
+                try:
+                    page.screenshot(path=screenshot_path, full_page=True)
+                    print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+                    sys.stdout.flush()
+                except Exception as ss_e:
+                    print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+                    sys.stdout.flush()
+                    screenshot_path = None
+                if screenshot_path and os.path.exists(screenshot_path):
+                    ocr_year = extract_year_from_image(screenshot_path)
+                    if ocr_year:
+                        return ocr_year
                 # Fallback 3: Parse all <a> tags and click the one with correct href/text
                 try:
                     anchors = page.query_selector_all('a')
@@ -206,15 +250,21 @@ def get_first_academic_year(page, program_id):
                     if "/AccreditationHistoryReport?programId=" in page.url:
                         print(f"[DEBUG] Already navigated to Accreditation History page for {program_id}, continuing extraction.")
                         sys.stdout.flush()
-                        screenshot_path = f"debug_acgme_{program_id}.png"
-                        try:
-                            page.screenshot(path=screenshot_path, full_page=True)
-                            print(f"[DEBUG] Saved screenshot to {screenshot_path}")
-                            sys.stdout.flush()
-                        except Exception as ss_e:
-                            print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
-                            sys.stdout.flush()
-                        return extract_academic_year_from_table(page, program_id, screenshot_path)
+                        return extract_academic_year_from_table(page, program_id, None)
+                    # If not navigated, take screenshot and try OCR before giving up
+                    screenshot_path = f"debug_acgme_{program_id}.png"
+                    try:
+                        page.screenshot(path=screenshot_path, full_page=True)
+                        print(f"[DEBUG] Saved screenshot to {screenshot_path}")
+                        sys.stdout.flush()
+                    except Exception as ss_e:
+                        print(f"[ERROR] Could not save screenshot for {program_id}: {ss_e}")
+                        sys.stdout.flush()
+                        screenshot_path = None
+                    if screenshot_path and os.path.exists(screenshot_path):
+                        ocr_year = extract_year_from_image(screenshot_path)
+                        if ocr_year:
+                            return ocr_year
                     return None
         # Only take screenshot if extraction fails or is ambiguous
         year = extract_academic_year_from_table(page, program_id, None)
@@ -299,9 +349,10 @@ def main():
         process_df = df.copy()
         output_file = FAILED_CSV_FILE
     else:
-        df = pd.read_csv(CSV_FILE)
-        print(f"[DEBUG] Read {len(df)} rows from {CSV_FILE}")
-        process_df = df.copy()
+        # Always sample from the latest set of records missing an academic year
+        df = pd.read_csv(NEW_CSV_FILE) if os.path.exists(NEW_CSV_FILE) else pd.read_csv(CSV_FILE)
+        print(f"[DEBUG] Read {len(df)} rows from {'freida_programs_output_with_academic_year.csv' if os.path.exists(NEW_CSV_FILE) else 'freida_programs_output.csv'}")
+        process_df = df[df['acgme_first_academic_year'].isnull() | (df['acgme_first_academic_year'].astype(str).str.strip() == '')].copy()
         output_file = NEW_CSV_FILE
 
     academic_years = []
@@ -315,8 +366,8 @@ def main():
         elif args.failed_only:
             iter_df = process_df
         else:
-            random_indices = random.sample(range(len(process_df)), min(5, len(process_df)))
-            iter_df = process_df.iloc[random_indices]
+            random_indices = random.sample(range(len(process_df)), min(5, len(process_df))) if len(process_df) > 0 else []
+            iter_df = process_df.iloc[random_indices] if len(random_indices) > 0 else process_df.iloc[[]]
         for idx, row in iter_df.iterrows():
             program_id = row['program_id']
             print(f"[DEBUG] Processing {program_id} (test {idx+1}/{len(iter_df)})...")
@@ -352,7 +403,15 @@ def main():
         else:
             df_full = iter_df
     else:
-        df_full = pd.read_csv(output_file)
+        # Always update the full DataFrame, never just the batch
+        full_df = pd.read_csv(output_file)
+        for idx, row in iter_df.iterrows():
+            pid = row['program_id']
+            year = row['acgme_first_academic_year'] if 'acgme_first_academic_year' in row else None
+            if year and str(year).strip():
+                full_df.loc[full_df['program_id'] == pid, 'acgme_first_academic_year'] = year
+        full_df.to_csv(output_file, index=False)
+        df_full = full_df
     success_df = df_full[df_full['acgme_first_academic_year'].notnull() & (df_full['acgme_first_academic_year'].astype(str).str.strip() != '')]
     failed_df = df_full[df_full['acgme_first_academic_year'].isnull() | (df_full['acgme_first_academic_year'].astype(str).str.strip() == '')]
     success_df.to_csv(SUCCESS_CSV_FILE, index=False)

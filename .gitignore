@@ -4,5 +4,7 @@ venv/*
 cookies/*.json
 debug/*
 __pycache__/
-logs/
+debug_acgme/
+nohup.out
 logs/*
+.DS_Store

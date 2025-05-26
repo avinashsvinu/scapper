@@ -1,6 +1,6 @@
-# 🔐 Web Scraper - Playwright Login & Session Automation
+# FREIDA & ACGME Web Scraper Suite
 
-This project logs into a website using credentials stored in a `.env` file, saves the session cookies, and reloads the session later to explore authenticated pages.
+This project automates the extraction of detailed residency/fellowship program data from the FREIDA (AMA) and ACGME websites. It uses Playwright for browser automation, BeautifulSoup for HTML parsing, and pandas for data management. The suite is modular, robust, and designed for large-scale, reliable scraping with full session management and error handling.
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Automation-green)](https://playwright.dev/python/)
@@ -8,165 +8,184 @@ This project logs into a website using credentials stored in a `.env` file, save
 
 ---
 
-## 📦 Features
-
-- Logs in with username & password (from `.env`)
-- Saves session cookies to file
-- Reloads session without re-logging
-- Discovers and prints all links on authenticated pages
-- Works with JavaScript-heavy pages (via Playwright)
-
----
-
-## 🧪 Test Site Used
-
-> Default:  
-**URL**: [https://the-internet.herokuapp.com/login](https://the-internet.herokuapp.com/login)  
-**Username**: `tomsmith`  
-**Password**: `SuperSecretPassword!`
+## Features
+- Automated login/session management (Playwright)
+- Batch scraping of all FREIDA program IDs
+- Robust extraction of all program details (including director/contact info)
+- Automated ACGME accreditation year extraction with OCR fallback
+- Modular, checkpointed, and resumable pipeline
+- Batch automation and failure recovery
 
 ---
 
-## ⚙️ Requirements
-
+## Requirements
 ```bash
 pip install -r requirements.txt
 playwright install
-
-
 ```
 
-## Architecture & Flow Chart
+---
+
+## Architecture Overview
 
 ```mermaid
 flowchart TD
-    A[Start: main.py] --> B[Read program IDs CSV]
-    B --> C[Launch Playwright browser]
-    C --> D[For each program ID]
-    D --> E[Visit program detail page]
-    E --> F[Extract ng-state JSON]
-    F --> G[Parse JSON: find program node]
-    G --> H[Find survey node via field_survey]
-    H --> I[Extract director/contact info from included]
-    I --> J[Assemble all fields]
-    J --> K[Write to partial CSV]
-    K --> L{More IDs?}
-    L -- Yes --> D
-    L -- No --> M[Write final CSV]
-    M --> N[End]
+    A[extract.py: Get all program IDs] --> B[main.py: For each program ID]
+    B --> C[scraper.py: Parse FREIDA program details]
+    C --> D[freida_programs_output.csv]
+    D --> E[acgme_scraper.py: For each program, get ACGME year]
+    E --> F[freida_programs_output_with_academic_year.csv]
+    F --> G[run_all.sh: Batch automation, retries, logging]
 ```
 
-## Output Files
+---
 
-- `freida_programs_output_with_academic_year.csv`: Main output, all records with updated academic year field.
-- `freida_programs_output_success.csv`: All records with a valid academic year (successes).
-- `freida_programs_output_failed.csv`: All records still missing an academic year (failures).
+## 1. Program ID Extraction (extract.py)
 
-## acgme_scraper.py Usage
-
-### Command Line Flags
-
-- `--failed-only` : Only process records with missing academic year in output CSV (`freida_programs_output_failed.csv`).
-- `--failed-record <ids>` : Comma-separated list of program_ids to retry from failed output CSV (e.g., `--failed-record 1405621446,1400500932`). Overrides `--failed-only` if set.
-
-### Examples
-
-- Process all failed records:
-  ```bash
-  python3 acgme_scraper.py --failed-only
-  ```
-- Process specific failed records:
-  ```bash
-  python3 acgme_scraper.py --failed-record 1405621446,1400500932
-  ```
-
-## 🛠️ Utility: Fixing the Main CSV
-
-If you ever restore or modify your main CSV and it is missing the `acgme_first_academic_year` column, use the provided `fix_csv.py` script:
-
-```bash
-python3 fix_csv.py
-```
-
-This will add the column as the first column (with empty values) if missing, ensuring the scraper runs without errors.
-
-## Updated Flow Chart
+**Purpose:** Scrape all FREIDA program IDs for a given specialty.
 
 ```mermaid
 flowchart TD
-    A[Start: main.py/acgme_scraper.py] --> B[Read program IDs from CSV]
-    B --> C[Launch Playwright browser]
-    C --> D[For each program ID (all, failed, or specific)]
-    D --> E[Visit program detail page]
-    E --> F[Try to click 'View Accreditation History' (human-like)]
-    F --> G{Click success?}
-    G -- Yes --> H[Extract academic year from table]
-    G -- No --> I[Take screenshot, run OCR]
-    I --> J{OCR finds valid year?}
-    J -- Yes --> K[Write to main CSV]
-    J -- No --> L[Try other click fallbacks]
-    L --> M{Fallback success?}
-    M -- Yes --> H
-    M -- No --> N[Log as failed]
-    H --> O{Valid year found?}
-    O -- Yes --> K
-    O -- No --> I
-    K --> P{More IDs?}
-    P -- Yes --> D
-    P -- No --> Q[Write final CSVs: success & failed]
-    Q --> R[End]
+    A[Start: extract.py] --> B[Open FREIDA search page]
+    B --> C[For each page of results]
+    C --> D[Extract program IDs from cards]
+    D --> E{More pages?}
+    E -- Yes --> B
+    E -- No --> F[Write all IDs to freida_program_ids.csv]
+    F --> G[End]
 ```
 
-## Automation: Process All Records in Batches
+- **Input:** None (scrapes all pages for a specialty)
+- **Output:** `freida_program_ids.csv`
 
-To process all 600+ records efficiently, use the provided automation script:
+---
 
-### `run_all.sh`
+## 2. FREIDA Program Parsing (main.py + scraper.py)
 
-- **What it does:**
-  - Runs the scraper in batches of 5, skipping already completed records.
-  - When only a few failures remain, it processes each failed record one at a time using the `--failed-record` flag.
-  - Continues until all records are completed and all failures are resolved.
-  - Prints progress after each batch and after each individual retry.
+**Purpose:** For each program ID, extract all available details, including director/contact info, using robust JSON parsing.
 
-### Usage
-
-```bash
-./run_all.sh
+```mermaid
+flowchart TD
+    A[Start: main.py] --> B[Read program IDs from CSV]
+    B --> C[For each program ID]
+    C --> D[Visit program detail page]
+    D --> E[Extract ng-state JSON]
+    E --> F[Parse JSON: find program node]
+    F --> G[Find survey node via field_survey]
+    G --> H[Extract director/contact info from survey node]
+    H --> I[Assemble all fields]
+    I --> J[Write to partial/final CSV]
+    J --> K{More IDs?}
+    K -- Yes --> C
+    K -- No --> L[End]
 ```
 
-- You can safely interrupt and resume the script; it will always skip already-completed records.
-- The script prints progress and will not stop until all records are processed.
-- All output and debug files are managed as described above.
+- **Input:** `freida_program_ids.csv`
+- **Output:** `freida_programs_output.csv`
 
-## Commit History & File Management
+---
 
-- All output CSVs are always overwritten, never appended, to reflect the current state.
-- Debug screenshots and logs are saved in their respective directories and excluded from git.
-- The `fix_csv.py` utility is provided for quick repair of the main CSV structure if needed.
+## 3. ACGME Accreditation Parsing (acgme_scraper.py)
 
-## Nuances & Best Practices
+**Purpose:** For each program, extract the first ACGME-accredited year using robust navigation and OCR fallback.
 
-- **Batch Size:** By default, the script processes 5 random records per run (can be changed in the code). This helps avoid overloading the site and makes debugging easier.
-- **Skipping Already Collected Records:** The script always skips records that already have an academic year, ensuring no duplicate work or overwriting of good data.
-- **Navigation & OCR Robustness:**
-  - If clicking 'View Accreditation History' fails, a screenshot is taken and OCR is attempted immediately.
-  - The OCR logic will skip '-' and use the next valid academic year found in the image.
-  - If OCR fails, the script tries other click fallbacks and logs as failed only if all options are exhausted.
-- **Output File Management:**
-  - `freida_programs_output_success.csv`: All records with a valid academic year (successes).
-  - `freida_programs_output_failed.csv`: All records still missing an academic year (failures).
-  - `freida_programs_output_with_academic_year.csv`: Main output, all records with updated academic year field.
-  - After each run, these files are kept in sync: successful records are moved from failed to success, and vice versa if needed.
-- **Processing Failed Records:**
-  - Use `--failed-only` to process all failed records in batch.
-  - Use `--failed-record <id>` to process a specific failed record.
-  - To process all failed records one at a time, loop over the IDs and call the script with `--failed-record` for each.
-- **Debugging:**
-  - Debug screenshots and HTML are saved for failed or edge cases.
-  - OCR fallback is used if DOM extraction fails, and now robustly skips '-' rows.
-- **Usage Tips:**
-  - For large datasets, run the script multiple times to gradually fill in missing data.
-  - You can safely interrupt and resume scraping; already-scraped records will be skipped.
-  - All logs should be stored in the `logs/` directory (excluded from git).
+```mermaid
+flowchart TD
+    A[Start: acgme_scraper.py] --> B[Read program list (with/without year)]
+    B --> C[For each program ID]
+    C --> D[Search ACGME site]
+    D --> E[Try to click 'View Accreditation History']
+    E --> F{Click success?}
+    F -- Yes --> G[Extract year from table]
+    F -- No --> H[Take screenshot, run OCR]
+    H --> I{OCR finds year?}
+    I -- Yes --> J[Write to CSV]
+    I -- No --> K[Try other click fallbacks]
+    K --> L{Fallback success?}
+    L -- Yes --> G
+    L -- No --> M[Log as failed]
+    G --> N{More IDs?}
+    N -- Yes --> C
+    N -- No --> O[Write final CSVs: success & failed]
+    O --> P[End]
+```
+
+- **Input:** `freida_programs_output.csv` (or failed/success CSVs)
+- **Output:** `freida_programs_output_with_academic_year.csv`, `freida_programs_output_success.csv`, `freida_programs_output_failed.csv`
+
+---
+
+## 4. Modular Pipeline & Automation (run_all.sh)
+
+**Purpose:** Orchestrate the full pipeline, handle batching, retries, and logging.
+
+```mermaid
+flowchart TD
+    A[extract.py] --> B[freida_program_ids.csv]
+    B --> C[main.py + scraper.py]
+    C --> D[freida_programs_output.csv]
+    D --> E[acgme_scraper.py]
+    E --> F[freida_programs_output_with_academic_year.csv]
+    F --> G[run_all.sh: Batch automation, retries, logging]
+```
+
+- **Input:** None (runs the full pipeline)
+- **Output:** All final CSVs, logs, and debug files
+
+---
+
+## Improvements & Best Practices
+- **Robust JSON parsing:** Always finds the correct node structure, even if the schema changes.
+- **Director/contact extraction:** Always uses the survey node for these fields, never the program node directly.
+- **Batching & checkpointing:** Saves progress every 25 records, can resume from any point.
+- **Failure handling:** All failures are logged and retried automatically.
+- **Debugging:** Screenshots and HTML are saved for all failures/edge cases.
+- **Output file management:** Success/failed/final CSVs are always kept in sync.
+- **Safe to interrupt/resume:** Already-processed records are always skipped.
+- **Logs and debug files:** Always excluded from git.
+
+---
+
+## Commit History (Summary)
+
+- **Initial commits:** Playwright login/session, basic scraping, and .env support
+- **Program extraction:** Added extract.py, program_extract.py, and robust ID scraping
+- **Robust parsing:** Added JSON heuristics, robust survey/director/contact extraction
+- **Modularization:** Split into main.py, scraper.py, utils.py for maintainability
+- **Batching & automation:** Added run_all.sh, batch processing, and checkpointing
+- **ACGME scraping:** Added acgme_scraper.py with robust navigation and OCR fallback
+- **Output management:** Always split into success/failed/final CSVs, with fix_csv.py utility
+- **Documentation:** Full markdown README, mermaid diagrams, and usage examples
+- **Debugging:** All failures save screenshots/HTML for review
+- **Recent:** Improved batch loop, robust file management, and automation script
+
+---
+
+## Usage
+
+1. **Extract all program IDs:**
+   ```bash
+   python3 extract.py
+   # Output: freida_program_ids.csv
+   ```
+2. **Extract all program details:**
+   ```bash
+   python3 main.py
+   # Output: freida_programs_output.csv
+   ```
+3. **Extract ACGME accreditation years:**
+   ```bash
+   python3 acgme_scraper.py
+   # Output: freida_programs_output_with_academic_year.csv, ..._success.csv, ..._failed.csv
+   ```
+4. **Automate full pipeline:**
+   ```bash
+   ./run_all.sh
+   # Handles batching, retries, and logging
+   ```
+
+---
+
+## License
+MIT
 
