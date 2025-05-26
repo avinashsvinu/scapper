@@ -122,4 +122,116 @@ def test_extract_program_detail_with_survey(monkeypatch):
     assert result["accepting_applications_2026_2027"] is False
     assert result["program_start_dates"] == "2024-07-01"
     assert result["participates_in_eras"] is True
-    assert result["visa_statuses_accepted"] == "J1" 
+    assert result["visa_statuses_accepted"] == "J1"
+
+def test_extract_program_detail_with_director_and_contact(monkeypatch):
+    page = MagicMock()
+    # JSON with survey, director, and contact relationships
+    minimal_json = {
+        "key": {
+            "b": {
+                "data": [
+                    {
+                        "type": "node--program",
+                        "attributes": {
+                            "field_program_id": "77777",
+                            "title": "Director Program",
+                            "field_address": {"locality": "Dir City", "administrative_area": "DR"},
+                            "changed": "2024-03-03",
+                            "field_accredited_length": 5,
+                            "field_required_length": 5,
+                            "field_affiliated_us_gov": False
+                        },
+                        "relationships": {
+                            "field_survey": {"data": [{"type": "survey", "id": "s2"}]}
+                        }
+                    }
+                ],
+                "included": []
+            }
+        }
+    }
+    html = '<html><body><script id="ng-state" type="application/json">' + \
+        json.dumps(minimal_json) + '</script></body></html>'
+    page.content.return_value = html
+    page.goto.return_value = None
+    page.wait_for_selector.return_value = None
+    # Patch find_included_node to return director/contact nodes as needed
+    def fake_find_included_node(type_, id_, included):
+        if type_ == "survey" and id_ == "s2":
+            return {
+                "attributes": {},
+                "relationships": {
+                    "field_program_director": {"data": {"type": "person", "id": "d1"}},
+                    "field_program_contact": {"data": {"type": "person", "id": "c1"}}
+                }
+            }
+        if type_ == "person" and id_ == "d1":
+            return {
+                "attributes": {
+                    "field_first_name": "DirFirst",
+                    "field_middle_name": "DirMid",
+                    "field_last_name": "DirLast",
+                    "field_suffix": "MD",
+                    "field_degrees": "PhD",
+                    "field_email": "dir@email.com",
+                    "field_phone": "123-456-7890",
+                    "field_address": {
+                        "organization": "DirOrg",
+                        "address_line1": "123 Dir St",
+                        "address_line2": "Apt 1",
+                        "locality": "Dir City",
+                        "administrative_area": "DR",
+                        "postal_code": "12345"
+                    }
+                }
+            }
+        if type_ == "person" and id_ == "c1":
+            return {
+                "attributes": {
+                    "field_first_name": "ConFirst",
+                    "field_middle_name": "ConMid",
+                    "field_last_name": "ConLast",
+                    "field_suffix": "RN",
+                    "field_degrees": "MSN",
+                    "field_email": "con@email.com",
+                    "field_phone": "987-654-3210",
+                    "field_address": {
+                        "organization": "ConOrg",
+                        "address_line1": "456 Con Ave",
+                        "address_line2": "Ste 2",
+                        "locality": "Con City",
+                        "administrative_area": "CN",
+                        "postal_code": "54321"
+                    }
+                }
+            }
+        return None
+    monkeypatch.setattr('scraper.find_included_node', fake_find_included_node)
+    result = scraper.extract_program_detail(page, "77777")
+    assert result["program_director_first_name"] == "DirFirst"
+    assert result["program_director_middle_name"] == "DirMid"
+    assert result["program_director_last_name"] == "DirLast"
+    assert result["program_director_suffix"] == "MD"
+    assert result["program_director_degrees"] == "PhD"
+    assert result["program_director_organization"] == "DirOrg"
+    assert result["program_director_address_line1"] == "123 Dir St"
+    assert result["program_director_address_line2"] == "Apt 1"
+    assert result["program_director_locality"] == "Dir City"
+    assert result["program_director_administrative_area"] == "DR"
+    assert result["program_director_postal_code"] == "12345"
+    assert result["program_director_email"] == "dir@email.com"
+    assert result["program_director_phone"] == "123-456-7890"
+    assert result["contact_first_name"] == "ConFirst"
+    assert result["contact_middle_name"] == "ConMid"
+    assert result["contact_last_name"] == "ConLast"
+    assert result["contact_suffix"] == "RN"
+    assert result["contact_degrees"] == "MSN"
+    assert result["contact_organization"] == "ConOrg"
+    assert result["contact_address_line1"] == "456 Con Ave"
+    assert result["contact_address_line2"] == "Ste 2"
+    assert result["contact_locality"] == "Con City"
+    assert result["contact_administrative_area"] == "CN"
+    assert result["contact_postal_code"] == "54321"
+    assert result["contact_email"] == "con@email.com"
+    assert result["contact_phone"] == "987-654-3210" 
