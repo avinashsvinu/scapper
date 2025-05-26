@@ -1,3 +1,9 @@
+"""
+scraper.py
+
+Extracts detailed program information from FREIDA program detail pages using Playwright and BeautifulSoup.
+"""
+
 # scraper.py
 import json
 from bs4 import BeautifulSoup
@@ -11,6 +17,10 @@ PROGRAM_DETAIL_URL_TEMPLATE = "https://freida.ama-assn.org/program/{}"
 
 
 def extract_program_detail(page, program_id):
+    """
+    Extracts all available details for a given program_id from the FREIDA program detail page.
+    Returns a dictionary of extracted fields.
+    """
     url = PROGRAM_DETAIL_URL_TEMPLATE.format(program_id)
     logging.info(f"Visiting detail page: {url}")
     try:

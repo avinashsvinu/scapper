@@ -1,3 +1,9 @@
+"""
+program_extract.py
+
+Legacy script for extracting detailed FREIDA program information, including director and contact info, using Playwright and BeautifulSoup.
+"""
+
 # Scraper for FREIDA programs list using Playwright (supports
 # JavaScript-rendered content)
 
@@ -25,6 +31,9 @@ PROGRAM_DETAIL_URL_TEMPLATE = "https://freida.ama-assn.org/program/{}"
 
 
 def find_included_node(type_name, node_id, included_list):
+    """
+    Finds and returns a node from included_list matching the given type and id.
+    """
     if not type_name or not node_id:
         return None
     for node in included_list:
@@ -35,6 +44,10 @@ def find_included_node(type_name, node_id, included_list):
 
 
 def extract_program_detail(page, program_id):
+    """
+    Extracts all available details for a given program_id from the FREIDA program detail page.
+    Returns a dictionary of extracted fields.
+    """
     url = PROGRAM_DETAIL_URL_TEMPLATE.format(program_id)
     logging.info(f"Visiting detail page: {url}")
     try:

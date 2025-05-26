@@ -1,3 +1,9 @@
+"""
+main.py
+
+Orchestrates scraping of all FREIDA program details using Playwright and outputs to CSV.
+"""
+
 from scraper import extract_program_detail
 from playwright.sync_api import sync_playwright
 import pandas as pd
@@ -15,6 +21,9 @@ logging.basicConfig(
 
 
 def main():
+    """
+    Main entry point: loads program IDs, scrapes details for each, and writes results to CSV.
+    """
     input_csv = "freida_program_ids.csv"
     output_csv = "freida_programs_output.csv"
     partial_csv = "freida_partial_row2.csv"
@@ -167,4 +176,7 @@ def main():
 
 
 if __name__ == "__main__":
+    """
+    Script entry point: calls main().
+    """
     main()

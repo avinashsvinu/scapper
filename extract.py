@@ -1,3 +1,9 @@
+"""
+extract.py
+
+Extracts all FREIDA program IDs by scraping paginated search results.
+"""
+
 # Scraper for FREIDA programs list using Playwright (supports
 # JavaScript-rendered content)
 
@@ -36,6 +42,9 @@ def extract_program_data(page):
 
 
 def scrape_all_pages():
+    """
+    Scrapes all paginated FREIDA program search result pages and returns a list of program data dicts.
+    """
     all_data = []
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -69,6 +78,9 @@ def scrape_all_pages():
 
 
 if __name__ == "__main__":
+    """
+    Main entry point: runs the program ID extraction and saves to CSV.
+    """
     try:
         data = scrape_all_pages()
         if data:

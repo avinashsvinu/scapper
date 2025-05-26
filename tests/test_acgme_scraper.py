@@ -127,4 +127,99 @@ def test_get_first_academic_year_with_retry_all_fail():
         assert result is None
         assert mock_get.call_count == 3
 
+def make_mock_page_for_first_academic_year(click_fails=False, table_year=None, ocr_year=None, fallback_anchor=False, fallback_button=False):
+    page = MagicMock()
+    page.goto.return_value = None
+    page.fill.return_value = None
+    page.press.return_value = None
+    page.wait_for_timeout.return_value = None
+    page.inner_text.return_value = "Some body text"
+    locator = MagicMock()
+    locator.wait_for.return_value = None
+    locator.scroll_into_view_if_needed.return_value = None
+    if click_fails:
+        locator.click.side_effect = Exception("Click failed")
+    else:
+        locator.click.return_value = None
+    page.locator.return_value.first = locator
+    page.expect_navigation.return_value.__enter__.return_value = None
+    page.expect_navigation.return_value.__exit__.return_value = None
+    page.url = "https://apps.acgme.org/ads/Public/Programs/AccreditationHistoryReport?programId=12345"
+    # Fallback anchor simulation
+    if fallback_anchor:
+        anchor = MagicMock()
+        anchor.inner_text.return_value = 'View Accreditation History'
+        anchor.get_attribute.return_value = '/ads/Public/Programs/AccreditationHistoryReport?programId=12345'
+        anchor.scroll_into_view_if_needed.return_value = None
+        def anchor_click_side_effect(*args, **kwargs):
+            page.url = "https://apps.acgme.org/ads/Public/Programs/AccreditationHistoryReport?programId=12345"
+        anchor.click.side_effect = anchor_click_side_effect
+        page.query_selector_all.return_value = [anchor]
+    else:
+        page.query_selector_all.return_value = []
+    # Fallback button simulation
+    if fallback_button:
+        btn_locator = MagicMock()
+        btn_locator.wait_for.return_value = None
+        btn_locator.scroll_into_view_if_needed.return_value = None
+        def btn_click_side_effect(*args, **kwargs):
+            page.url = "https://apps.acgme.org/ads/Public/Programs/AccreditationHistoryReport?programId=12345"
+        btn_locator.click.side_effect = btn_click_side_effect
+        def locator_side_effect(selector):
+            if selector == 'a.btn.btn-primary:has-text("View Accreditation History")':
+                return MagicMock(first=btn_locator)
+            return MagicMock(first=locator)
+        page.locator.side_effect = locator_side_effect
+    return page, locator
+
+def test_get_first_academic_year_happy_path():
+    page, locator = make_mock_page_for_first_academic_year()
+    with patch("acgme_scraper.extract_academic_year_from_table", return_value="2023 - 2024") as mock_table:
+        result = acgme_scraper.get_first_academic_year(page, "12345")
+        assert result == "2023 - 2024"
+        mock_table.assert_called()
+
+def test_get_first_academic_year_click_fails_fallback_table():
+    page, locator = make_mock_page_for_first_academic_year(click_fails=True)
+    page.url = "https://apps.acgme.org/ads/Public/Programs/Search"
+    # Patch page.locator to always return a mock that sets page.url on click
+    def locator_side_effect(selector):
+        fallback_locator = MagicMock()
+        fallback_locator.wait_for.return_value = None
+        fallback_locator.scroll_into_view_if_needed.return_value = None
+        def click_side_effect(*args, **kwargs):
+            page.url = "https://apps.acgme.org/ads/Public/Programs/AccreditationHistoryReport?programId=12345"
+        fallback_locator.click.side_effect = click_side_effect
+        fallback_locator.get_attribute.return_value = '/ads/Public/Programs/AccreditationHistoryReport?programId=12345'
+        return MagicMock(first=fallback_locator)
+    page.locator.side_effect = locator_side_effect
+    # Patch page.goto to set the URL as well
+    def goto_side_effect(url, *args, **kwargs):
+        page.url = "https://apps.acgme.org/ads/Public/Programs/AccreditationHistoryReport?programId=12345"
+    page.goto.side_effect = goto_side_effect
+    with patch("acgme_scraper.extract_academic_year_from_table", side_effect=[None, "2022 - 2023"]) as mock_table:
+        with patch("acgme_scraper.extract_year_from_image", return_value=None):
+            with patch("os.path.exists", return_value=False):
+                result = acgme_scraper.get_first_academic_year(page, "12345")
+                assert result == "2022 - 2023"
+                assert mock_table.call_count >= 2
+
+def test_get_first_academic_year_click_and_table_fail_fallback_ocr():
+    page, locator = make_mock_page_for_first_academic_year(click_fails=True)
+    page.url = "https://apps.acgme.org/ads/Public/Programs/Search"
+    with patch("acgme_scraper.extract_academic_year_from_table", return_value=None):
+        with patch("acgme_scraper.extract_year_from_image", return_value="2021 - 2022") as mock_ocr:
+            with patch("os.path.exists", return_value=True):
+                result = acgme_scraper.get_first_academic_year(page, "12345")
+                assert result == "2021 - 2022"
+                mock_ocr.assert_called()
+
+def test_get_first_academic_year_all_fail():
+    page, locator = make_mock_page_for_first_academic_year(click_fails=True)
+    with patch("acgme_scraper.extract_academic_year_from_table", return_value=None):
+        with patch("acgme_scraper.extract_year_from_image", return_value=None):
+            with patch("os.path.exists", return_value=True):
+                result = acgme_scraper.get_first_academic_year(page, "12345")
+                assert result is None
+
 # More tests will be added for each function, with mocks for Playwright and file I/O. 
