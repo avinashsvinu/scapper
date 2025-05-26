@@ -52,4 +52,57 @@ def test_human_like_click_without_box():
     acgme_scraper.human_like_click(page, locator)
     locator.click.assert_called_once()
 
+def make_mock_page_with_table(years=None, ocr_result=None, raise_on_table=False):
+    """Helper to create a mock Playwright page for table extraction tests."""
+    page = MagicMock()
+    if raise_on_table:
+        page.wait_for_selector.side_effect = Exception("Table error")
+    else:
+        page.wait_for_selector.return_value = None
+        rows = []
+        if years is not None:
+            for year in years:
+                cell = MagicMock()
+                cell.inner_text.return_value = year
+                row = MagicMock()
+                row.query_selector_all.return_value = [cell]
+                rows.append(row)
+            # Add a header row
+            header = MagicMock()
+            header.query_selector_all.return_value = []
+            rows = [header] + rows
+        page.query_selector_all.return_value = rows
+    page.screenshot.return_value = None
+    return page
+
+def test_extract_academic_year_from_table_valid():
+    page = make_mock_page_with_table(years=["2020 - 2021"])
+    with patch("acgme_scraper.extract_year_from_image", return_value=None):
+        result = acgme_scraper.extract_academic_year_from_table(page, "12345")
+        assert result == "2020 - 2021"
+
+def test_extract_academic_year_from_table_no_valid_year_triggers_ocr():
+    page = make_mock_page_with_table(years=["-"])
+    with patch("acgme_scraper.extract_year_from_image", return_value="2019 - 2020") as mock_ocr:
+        with patch("os.path.exists", return_value=True):
+            result = acgme_scraper.extract_academic_year_from_table(page, "12345")
+            assert result == "2019 - 2020"
+            mock_ocr.assert_called()
+
+def test_extract_academic_year_from_table_no_rows_triggers_ocr():
+    page = make_mock_page_with_table(years=[])
+    with patch("acgme_scraper.extract_year_from_image", return_value="2018 - 2019") as mock_ocr:
+        with patch("os.path.exists", return_value=True):
+            result = acgme_scraper.extract_academic_year_from_table(page, "12345")
+            assert result == "2018 - 2019"
+            mock_ocr.assert_called()
+
+def test_extract_academic_year_from_table_exception_triggers_ocr():
+    page = make_mock_page_with_table(raise_on_table=True)
+    with patch("acgme_scraper.extract_year_from_image", return_value="2017 - 2018") as mock_ocr:
+        with patch("os.path.exists", return_value=True):
+            result = acgme_scraper.extract_academic_year_from_table(page, "12345")
+            assert result == "2017 - 2018"
+            mock_ocr.assert_called()
+
 # More tests will be added for each function, with mocks for Playwright and file I/O. 
