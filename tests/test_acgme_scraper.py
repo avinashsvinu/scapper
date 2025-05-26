@@ -105,4 +105,26 @@ def test_extract_academic_year_from_table_exception_triggers_ocr():
             assert result == "2017 - 2018"
             mock_ocr.assert_called()
 
+def test_get_first_academic_year_with_retry_first_try():
+    page = MagicMock()
+    with patch("acgme_scraper.get_first_academic_year", return_value="2022 - 2023") as mock_get:
+        result = acgme_scraper.get_first_academic_year_with_retry(page, "12345", max_retries=3)
+        assert result == "2022 - 2023"
+        mock_get.assert_called_once()
+
+def test_get_first_academic_year_with_retry_retries_then_succeeds():
+    page = MagicMock()
+    # First two calls return None, third returns a value
+    with patch("acgme_scraper.get_first_academic_year", side_effect=[None, None, "2021 - 2022"]) as mock_get:
+        result = acgme_scraper.get_first_academic_year_with_retry(page, "12345", max_retries=3)
+        assert result == "2021 - 2022"
+        assert mock_get.call_count == 3
+
+def test_get_first_academic_year_with_retry_all_fail():
+    page = MagicMock()
+    with patch("acgme_scraper.get_first_academic_year", return_value=None) as mock_get:
+        result = acgme_scraper.get_first_academic_year_with_retry(page, "12345", max_retries=3)
+        assert result is None
+        assert mock_get.call_count == 3
+
 # More tests will be added for each function, with mocks for Playwright and file I/O. 
