@@ -1,5 +1,8 @@
-
 playwright
-python-dotenv
+beautifulsoup4
 pandas
-bs4
+python-dotenv
+pillow
+pytesseract
+pytest
+pytest-cov

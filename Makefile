@@ -12,7 +12,7 @@ lint:
 # Example: pytest
 
 test:
-	@echo "No tests defined yet. Add your test runner here."
+	pytest tests/
 
 # Auto-fix Python files with autopep8 (if installed)
 fix:
@@ -21,4 +21,10 @@ fix:
 # Clean up Python cache files
 clean:
 	find . -name '*.pyc' -delete
-	find . -name '__pycache__' -type d -exec rm -rf {} + 
+	find . -name '__pycache__' -type d -exec rm -rf {} +
+
+# Run tests with coverage
+.PHONY: coverage
+
+coverage:
+	pytest --cov=. --cov-report=term-missing tests/ 
