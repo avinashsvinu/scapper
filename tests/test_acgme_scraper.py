@@ -34,4 +34,22 @@ def test_extract_year_from_image_exception():
             result = acgme_scraper.extract_year_from_image("dummy_path.png")
             assert result is None
 
+def test_human_like_click_with_box():
+    """Test human_like_click with a valid bounding box."""
+    page = MagicMock()
+    locator = MagicMock()
+    locator.bounding_box.return_value = {'x': 10, 'y': 20, 'width': 100, 'height': 50}
+    acgme_scraper.human_like_click(page, locator)
+    assert page.mouse.move.called
+    assert locator.hover.called
+    assert locator.click.called
+
+def test_human_like_click_without_box():
+    """Test human_like_click when bounding_box returns None."""
+    page = MagicMock()
+    locator = MagicMock()
+    locator.bounding_box.return_value = None
+    acgme_scraper.human_like_click(page, locator)
+    locator.click.assert_called_once()
+
 # More tests will be added for each function, with mocks for Playwright and file I/O. 
