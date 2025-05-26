@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # FREIDA & ACGME Web Scraper Suite
 
 This project automates the extraction of detailed residency/fellowship program data from the FREIDA (AMA) and ACGME websites. It uses Playwright for browser automation, BeautifulSoup for HTML parsing, and pandas for data management. The suite is modular, robust, and designed for large-scale, reliable scraping with full session management and error handling.
