@@ -10,6 +10,7 @@ USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
 STORAGE_STATE = os.getenv("STORAGE_STATE") or "cookies/frieda_state.json"
 
+
 def login_and_save_storage():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
@@ -29,18 +30,19 @@ def login_and_save_storage():
 
         # Dismiss cookie banner if present
         try:
-            page.click("text=Cookie Settings >> xpath=../..//button[contains(., '×')]")
-        except:
+            page.click(
+                "text=Cookie Settings >> xpath=../..//button[contains(., '×')]")
+        except BaseException:
             pass  # ignore if not found
 
         # Attempt to click Sign In
         print("[*] Attempting login...")
         try:
             page.click("button:has-text('Sign In')")
-        except:
+        except BaseException:
             try:
                 page.locator("//button[contains(text(), 'Sign In')]").click()
-            except:
+            except BaseException:
                 page.press("input#password", "Enter")
 
         # Wait for the result to load
@@ -53,6 +55,6 @@ def login_and_save_storage():
         print(f"✅ Login successful. Session saved to {STORAGE_STATE}")
         browser.close()
 
+
 if __name__ == "__main__":
     login_and_save_storage()
-

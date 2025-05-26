@@ -1,4 +1,5 @@
-# Scraper for FREIDA programs list using Playwright (supports JavaScript-rendered content)
+# Scraper for FREIDA programs list using Playwright (supports
+# JavaScript-rendered content)
 
 import time
 import pandas as pd
@@ -22,13 +23,16 @@ logging.basicConfig(
 
 PROGRAM_DETAIL_URL_TEMPLATE = "https://freida.ama-assn.org/program/{}"
 
+
 def find_included_node(type_name, node_id, included_list):
     if not type_name or not node_id:
         return None
     for node in included_list:
-        if isinstance(node, dict) and node.get('type') == type_name and node.get('id') == node_id:
+        if isinstance(node, dict) and node.get(
+                'type') == type_name and node.get('id') == node_id:
             return node
     return None
+
 
 def extract_program_detail(page, program_id):
     url = PROGRAM_DETAIL_URL_TEMPLATE.format(program_id)
@@ -44,13 +48,18 @@ def extract_program_detail(page, program_id):
             page.screenshot(path=screenshot_file, full_page=True)
             logging.debug(f"📸 Saved screenshot to {screenshot_file}")
 
-        script_tag = soup.find('script', {'id': 'ng-state', 'type': 'application/json'})
+        script_tag = soup.find(
+            'script', {
+                'id': 'ng-state', 'type': 'application/json'})
         if not script_tag or not script_tag.string:
             error = "Missing ng-state JSON"
             logging.error(error)
             if EXIT_ON_ERRORS:
                 raise ValueError(error)
-            return {"program_id": program_id, "source_url": url, "error": error}
+            return {
+                "program_id": program_id,
+                "source_url": url,
+                "error": error}
 
         try:
             full_json_data = json.loads(script_tag.string)
@@ -59,7 +68,10 @@ def extract_program_detail(page, program_id):
             logging.error(error)
             if EXIT_ON_ERRORS:
                 raise
-            return {"program_id": program_id, "source_url": url, "error": error}
+            return {
+                "program_id": program_id,
+                "source_url": url,
+                "error": error}
 
         raw_json = json.dumps(full_json_data)
         full_json_payload = None
@@ -80,7 +92,10 @@ def extract_program_detail(page, program_id):
             logging.error(error)
             if EXIT_ON_ERRORS:
                 raise ValueError(error)
-            return {"program_id": program_id, "source_url": url, "error": error}
+            return {
+                "program_id": program_id,
+                "source_url": url,
+                "error": error}
 
         api_data = full_json_payload.get('b', {})
         program_nodes = api_data.get('data', [])
@@ -89,15 +104,22 @@ def extract_program_detail(page, program_id):
             logging.error(error)
             if EXIT_ON_ERRORS:
                 raise ValueError(error)
-            return {"program_id": program_id, "source_url": url, "error": error}
+            return {
+                "program_id": program_id,
+                "source_url": url,
+                "error": error}
 
-        program_node = next((node for node in program_nodes if node.get("type") == "node--program"), None)
+        program_node = next(
+            (node for node in program_nodes if node.get("type") == "node--program"), None)
         if not program_node:
             error = "No node--program found in JSON"
             logging.error(error)
             if EXIT_ON_ERRORS:
                 raise ValueError(error)
-            return {"program_id": program_id, "source_url": url, "error": error}
+            return {
+                "program_id": program_id,
+                "source_url": url,
+                "error": error}
 
         included_nodes = api_data.get('included', [])
 
@@ -108,62 +130,87 @@ def extract_program_detail(page, program_id):
             'program_id': prog_attrs.get('field_program_id'),
             'source_url': url,
             'program_name_suffix': prog_attrs.get('title'),
-            'city': prog_attrs.get('field_address', {}).get('locality'),
-            'state': prog_attrs.get('field_address', {}).get('administrative_area'),
+            'city': prog_attrs.get(
+                'field_address',
+                {}).get('locality'),
+            'state': prog_attrs.get(
+                'field_address',
+                {}).get('administrative_area'),
             'data_last_updated': prog_attrs.get('changed'),
             'accredited_training_length': prog_attrs.get('field_accredited_length'),
             'required_training_length': prog_attrs.get('field_required_length'),
             'affiliated_us_government': prog_attrs.get('field_affiliated_us_gov'),
-            'raw_ng_state_json': raw_json if DEBUG_MODE else None
-        }
+            'raw_ng_state_json': raw_json if DEBUG_MODE else None}
 
-        survey_ref_data_list = prog_rels.get('field_survey', {}).get('data', [])
+        survey_ref_data_list = prog_rels.get(
+            'field_survey', {}).get('data', [])
         survey_node = None
         if survey_ref_data_list and isinstance(survey_ref_data_list, list):
             survey_ref_data = survey_ref_data_list[0]
             if survey_ref_data and isinstance(survey_ref_data, dict):
-                survey_node = find_included_node(survey_ref_data.get('type'), survey_ref_data.get('id'), included_nodes)
+                survey_node = find_included_node(survey_ref_data.get(
+                    'type'), survey_ref_data.get('id'), included_nodes)
 
         if survey_node:
             survey_attrs = survey_node.get('attributes', {})
-            extracted_data.update({
-                'first_year_positions': survey_attrs.get('field_first_year_positions'),
-                'interviews_conducted_last_year': survey_attrs.get('field_interviews_conducted'),
-                'avg_hours_on_duty_y1': survey_attrs.get('field_avg_hours_on_duty_y1'),
-                'pct_do': survey_attrs.get('field_pct_do'),
-                'pct_img': survey_attrs.get('field_pct_img'),
-                'pct_usmd': survey_attrs.get('field_pct_usmd'),
-                'program_best_described_as': survey_attrs.get('field_program_best_described_as'),
-                'website': survey_attrs.get('field_website'),
-                'special_features_text': survey_attrs.get('field_special_features', {}).get('value') if isinstance(survey_attrs.get('field_special_features'), dict) else None,
-                'accepting_applications_2025_2026': survey_attrs.get('field_accepting_current_year'),
-                'accepting_applications_2026_2027': survey_attrs.get('field_accepting_next_year'),
-                'program_start_dates': survey_attrs.get('field_program_start_dates'),
-                'participates_in_eras': survey_attrs.get('field_participates_in_eras'),
-                'visa_statuses_accepted': survey_attrs.get('field_visa_status')
-            })
+            extracted_data.update(
+                {
+                    'first_year_positions': survey_attrs.get('field_first_year_positions'),
+                    'interviews_conducted_last_year': survey_attrs.get('field_interviews_conducted'),
+                    'avg_hours_on_duty_y1': survey_attrs.get('field_avg_hours_on_duty_y1'),
+                    'pct_do': survey_attrs.get('field_pct_do'),
+                    'pct_img': survey_attrs.get('field_pct_img'),
+                    'pct_usmd': survey_attrs.get('field_pct_usmd'),
+                    'program_best_described_as': survey_attrs.get('field_program_best_described_as'),
+                    'website': survey_attrs.get('field_website'),
+                    'special_features_text': survey_attrs.get(
+                        'field_special_features',
+                        {}).get('value') if isinstance(
+                        survey_attrs.get('field_special_features'),
+                        dict) else None,
+                    'accepting_applications_2025_2026': survey_attrs.get('field_accepting_current_year'),
+                    'accepting_applications_2026_2027': survey_attrs.get('field_accepting_next_year'),
+                    'program_start_dates': survey_attrs.get('field_program_start_dates'),
+                    'participates_in_eras': survey_attrs.get('field_participates_in_eras'),
+                    'visa_statuses_accepted': survey_attrs.get('field_visa_status')})
 
         specialty_ref = prog_rels.get('field_specialty', {}).get('data', {})
-        specialty_node = find_included_node(specialty_ref.get('type'), specialty_ref.get('id'), included_nodes) if isinstance(specialty_ref, dict) else None
-        extracted_data['specialty_title'] = specialty_node.get('attributes', {}).get('title') if specialty_node else None
+        specialty_node = find_included_node(
+            specialty_ref.get('type'),
+            specialty_ref.get('id'),
+            included_nodes) if isinstance(
+            specialty_ref,
+            dict) else None
+        extracted_data['specialty_title'] = specialty_node.get(
+            'attributes', {}).get('title') if specialty_node else None
 
-        director_ref = prog_rels.get('field_program_director', {}).get('data', {})
+        director_ref = prog_rels.get(
+            'field_program_director', {}).get(
+            'data', {})
         if isinstance(director_ref, dict):
-            director_node = find_included_node(director_ref.get('type'), director_ref.get('id'), included_nodes)
+            director_node = find_included_node(director_ref.get(
+                'type'), director_ref.get('id'), included_nodes)
             if director_node:
                 dir_attrs = director_node.get('attributes', {})
-                extracted_data['program_director_email'] = dir_attrs.get('field_email')
-                extracted_data['program_director_phone'] = dir_attrs.get('field_phone')
+                extracted_data['program_director_email'] = dir_attrs.get(
+                    'field_email')
+                extracted_data['program_director_phone'] = dir_attrs.get(
+                    'field_phone')
                 if not extracted_data['program_director_email'] and EXIT_ON_ERRORS:
                     raise ValueError("Missing program director email")
 
-        contact_ref = prog_rels.get('field_program_contact', {}).get('data', {})
+        contact_ref = prog_rels.get(
+            'field_program_contact', {}).get(
+            'data', {})
         if isinstance(contact_ref, dict):
-            contact_node = find_included_node(contact_ref.get('type'), contact_ref.get('id'), included_nodes)
+            contact_node = find_included_node(
+                contact_ref.get('type'), contact_ref.get('id'), included_nodes)
             if contact_node:
                 contact_attrs = contact_node.get('attributes', {})
-                extracted_data['contact_email'] = contact_attrs.get('field_email')
-                extracted_data['contact_phone'] = contact_attrs.get('field_phone')
+                extracted_data['contact_email'] = contact_attrs.get(
+                    'field_email')
+                extracted_data['contact_phone'] = contact_attrs.get(
+                    'field_phone')
                 if not extracted_data['contact_email'] and EXIT_ON_ERRORS:
                     raise ValueError("Missing contact person email")
 
@@ -175,6 +222,7 @@ def extract_program_detail(page, program_id):
             raise
         return {"program_id": program_id, "source_url": url, "error": str(e)}
 
+
 def visit_all_program_ids():
     ids_df = pd.read_csv("freida_program_ids.csv")
     all_programs = []
@@ -184,13 +232,15 @@ def visit_all_program_ids():
         page = context.new_page()
 
         for idx, row in ids_df.iterrows():
-            logging.debug(f"Processing row {idx+1}/{len(ids_df)}: Program ID {row['program_id']}")
+            logging.debug(
+                f"Processing row {idx + 1}/{len(ids_df)}: Program ID {row['program_id']}")
             result = extract_program_detail(page, row["program_id"])
             all_programs.append(result)
 
             if (idx + 1) % 25 == 0 or idx == 1:
                 df_partial = pd.DataFrame(all_programs)
-                partial_file = f"freida_partial_{idx + 1}.csv" if (idx + 1) % 25 == 0 else "freida_partial_row2.csv"
+                partial_file = f"freida_partial_{idx + 1}.csv" if (
+                    idx + 1) % 25 == 0 else "freida_partial_row2.csv"
                 df_partial.to_csv(partial_file, index=False)
                 logging.info(f"📄 Saved checkpoint to {partial_file}")
 
@@ -200,13 +250,15 @@ def visit_all_program_ids():
 
     return all_programs
 
+
 if __name__ == "__main__":
     try:
         data = visit_all_program_ids()
         if data:
             df = pd.DataFrame(data)
             df.to_csv("freida_program_full_details.csv", index=False)
-            logging.info("✅ Scrape complete. Saved to freida_program_full_details.csv")
+            logging.info(
+                "✅ Scrape complete. Saved to freida_program_full_details.csv")
         else:
             logging.warning("⚠️ No data scraped.")
     except Exception as e:

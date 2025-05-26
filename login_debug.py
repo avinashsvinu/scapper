@@ -9,6 +9,7 @@ USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
 STORAGE_STATE = os.getenv("STORAGE_STATE") or "cookies/frieda_state.json"
 
+
 def login_and_debug():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
@@ -29,11 +30,11 @@ def login_and_debug():
         try:
             page.click("button:has-text('Sign In')")
             login_success = True
-        except:
+        except BaseException:
             try:
                 page.locator("//button[contains(text(), 'Sign In')]").click()
                 login_success = True
-            except:
+            except BaseException:
                 try:
                     page.press("input#password", "Enter")
                     login_success = True
@@ -58,6 +59,6 @@ def login_and_debug():
 
         browser.close()
 
+
 if __name__ == "__main__":
     login_and_debug()
-

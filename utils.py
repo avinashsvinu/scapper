@@ -4,14 +4,24 @@ def find_included_node(type_name, node_id, included_list):
             return node
     return None
 
-def extract_contact_details(ref_key, survey_rels, included_nodes, extracted_data):
+
+def extract_contact_details(
+        ref_key,
+        survey_rels,
+        included_nodes,
+        extracted_data):
     ref = survey_rels.get(ref_key, {}).get('data', {})
     if isinstance(ref, dict):
-        node = find_included_node(ref.get('type'), ref.get('id'), included_nodes)
+        node = find_included_node(
+            ref.get('type'),
+            ref.get('id'),
+            included_nodes)
         if node:
             attrs = node.get('attributes', {})
-            extracted_data[f'{ref_key}_first_name'] = attrs.get('field_first_name')
-            extracted_data[f'{ref_key}_last_name'] = attrs.get('field_last_name')
+            extracted_data[f'{ref_key}_first_name'] = attrs.get(
+                'field_first_name')
+            extracted_data[f'{ref_key}_last_name'] = attrs.get(
+                'field_last_name')
             extracted_data[f'{ref_key}_degrees'] = attrs.get('field_degrees')
             address = attrs.get('field_address', {})
             if isinstance(address, dict):
@@ -23,15 +33,27 @@ def extract_contact_details(ref_key, survey_rels, included_nodes, extracted_data
                     address.get('administrative_area'),
                     address.get('postal_code')
                 ]
-                extracted_data[f'{ref_key}_address'] = ", ".join(filter(None, parts)).replace(" ,", ",").strip(', ')
+                extracted_data[f'{ref_key}_address'] = ", ".join(
+                    filter(None, parts)).replace(" ,", ",").strip(', ')
             else:
                 extracted_data[f'{ref_key}_address'] = None
             extracted_data[f'{ref_key}_email'] = attrs.get('field_email')
             extracted_data[f'{ref_key}_phone'] = attrs.get('field_phone')
         else:
-            for suffix in ['first_name', 'last_name', 'degrees', 'address', 'email', 'phone']:
+            for suffix in [
+                'first_name',
+                'last_name',
+                'degrees',
+                'address',
+                'email',
+                    'phone']:
                 extracted_data[f'{ref_key}_{suffix}'] = None
     else:
-        for suffix in ['first_name', 'last_name', 'degrees', 'address', 'email', 'phone']:
+        for suffix in [
+            'first_name',
+            'last_name',
+            'degrees',
+            'address',
+            'email',
+                'phone']:
             extracted_data[f'{ref_key}_{suffix}'] = None
-

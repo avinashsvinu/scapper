@@ -1,11 +1,14 @@
-# Scraper for FREIDA programs list using Playwright (supports JavaScript-rendered content)
+# Scraper for FREIDA programs list using Playwright (supports
+# JavaScript-rendered content)
 
 import time
 import pandas as pd
 from playwright.sync_api import sync_playwright
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s')
 
 START_URL_TEMPLATE = "https://freida.ama-assn.org/search/list?spec=42771&page={page}"
 
@@ -47,7 +50,8 @@ def scrape_all_pages():
                 page.goto(url, wait_until="networkidle")
                 page.wait_for_selector(".search-result-card", timeout=10000)
             except Exception as e:
-                logging.error(f"Failed to load or wait for content on page {page_num}: {e}")
+                logging.error(
+                    f"Failed to load or wait for content on page {page_num}: {e}")
                 break
 
             page_data = extract_program_data(page)

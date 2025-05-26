@@ -6,10 +6,12 @@ from playwright.sync_api import sync_playwright
 # Load .env file
 load_dotenv()
 
-LOGIN_URL = os.getenv("LOGIN_URL") or "https://the-internet.herokuapp.com/login"
+LOGIN_URL = os.getenv(
+    "LOGIN_URL") or "https://the-internet.herokuapp.com/login"
 USERNAME = os.getenv("USERNAME") or "default_user"
 PASSWORD = os.getenv("PASSWORD") or "default_pass"
 COOKIES_FILE = os.getenv("COOKIES_FILE") or "cookies.pkl"
+
 
 def login_and_save_cookies():
     with sync_playwright() as p:
@@ -31,6 +33,7 @@ def login_and_save_cookies():
 
         print(f"[*] Saved cookies to {COOKIES_FILE}")
         browser.close()
+
 
 def load_cookies_and_browse():
     with sync_playwright() as p:
@@ -59,9 +62,9 @@ def load_cookies_and_browse():
 
         browser.close()
 
+
 if __name__ == "__main__":
     print("1. Running login and cookie saver...")
     login_and_save_cookies()
     print("2. Reopening browser with cookies...")
     load_cookies_and_browse()
-

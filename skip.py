@@ -7,6 +7,7 @@ load_dotenv()
 ACCOUNT_RECOVERY_URL = "https://fsso.ama-assn.org/account-recovery"
 STORAGE_STATE = os.getenv("STORAGE_STATE") or "cookies/frieda_state.json"
 
+
 def skip_account_recovery():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
@@ -24,6 +25,6 @@ def skip_account_recovery():
 
         browser.close()
 
+
 if __name__ == "__main__":
     skip_account_recovery()
-

@@ -15,10 +15,13 @@ LOGFILE = "progress_monitor.log"
 # Helper to find and kill the main scraping process
 SCRAPER_CMD = "python3 acgme_scraper.py"
 RUN_ALL_CMD = "./run_all.sh"
+
+
 def log(msg):
     print(msg)
     with open(LOGFILE, "a") as f:
         f.write(msg + "\n")
+
 
 def kill_scraper():
     try:
@@ -32,11 +35,13 @@ def kill_scraper():
         log(f"[INFO] No running scraper process found to kill. ({e})")
         return False
 
+
 def count_records(csv_path):
     if not os.path.exists(csv_path):
         return 0
     with open(csv_path, "r") as f:
         return sum(1 for _ in f) - 1  # subtract header
+
 
 def main():
     log("Monitoring progress. Press Ctrl+C to stop.")
@@ -48,8 +53,10 @@ def main():
         success = count_records(SUCCESS_CSV)
         remaining = failed
         done = success
-        if remaining < 0: remaining = 0
-        if done < 0: done = 0
+        if remaining < 0:
+            remaining = 0
+        if done < 0:
+            done = 0
 
         if remaining == 0:
             log(f"✅ All records processed! ({done}/{total})")
@@ -64,12 +71,16 @@ def main():
         if (last_failed, last_success) == (failed, success):
             stall_count += 1
             if stall_count >= STALL_LIMIT:
-                log(f"[WARNING] No progress detected for {STALL_LIMIT * CHECK_INTERVAL} seconds. Possible block or stall.")
+                log(
+                    f"[WARNING] No progress detected for {
+                        STALL_LIMIT *
+                        CHECK_INTERVAL} seconds. Possible block or stall.")
                 killed = kill_scraper()
                 stall_count = 0  # reset after killing
                 if killed:
                     wait_minutes = random.randint(15, 20)
-                    log(f"[INFO] Waiting {wait_minutes} minutes before restarting run_all.sh...")
+                    log(
+                        f"[INFO] Waiting {wait_minutes} minutes before restarting run_all.sh...")
                     time.sleep(wait_minutes * 60)
                     log("[INFO] Restarting run_all.sh...")
                     subprocess.Popen([RUN_ALL_CMD])
@@ -79,5 +90,6 @@ def main():
 
         time.sleep(CHECK_INTERVAL)
 
+
 if __name__ == "__main__":
-    main() 
+    main()
