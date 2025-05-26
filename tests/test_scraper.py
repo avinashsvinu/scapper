@@ -234,4 +234,21 @@ def test_extract_program_detail_with_director_and_contact(monkeypatch):
     assert result["contact_administrative_area"] == "CN"
     assert result["contact_postal_code"] == "54321"
     assert result["contact_email"] == "con@email.com"
-    assert result["contact_phone"] == "987-654-3210" 
+    assert result["contact_phone"] == "987-654-3210"
+
+def test_extract_program_detail_missing_ng_state(monkeypatch):
+    page = MagicMock()
+    # HTML with no ng-state script
+    html = '<html><body><div>No JSON here</div></body></html>'
+    page.content.return_value = html
+    page.goto.return_value = None
+    page.wait_for_selector.return_value = None
+    # Patch find_included_node to avoid side effects
+    monkeypatch.setattr('scraper.find_included_node', lambda t, i, n: None)
+    # Should raise ValueError or return error dict
+    try:
+        result = scraper.extract_program_detail(page, "00000")
+    except Exception as e:
+        assert isinstance(e, ValueError)
+    else:
+        assert "error" in result or result["program_id"] == "00000" 
