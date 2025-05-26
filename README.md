@@ -1,3 +1,9 @@
+> **⚠️ WARNING: Experimental Project**
+>
+> This repository is provided **for experimental, demonstration, and educational purposes only**. It is intended to illustrate how web scraping can be used to automate information gathering from public websites. **Do not use this code for any production, commercial, or unauthorized purposes.**
+>
+> The authors and contributors of this project accept **no responsibility or liability** for any misuse, legal issues, or damages resulting from the use of this code. Use at your own risk and always comply with the terms of service and legal requirements of any website you interact with.
+
 # FREIDA & ACGME Web Scraper Suite
 
 This project automates the extraction of detailed residency/fellowship program data from the FREIDA (AMA) and ACGME websites. It uses Playwright for browser automation, BeautifulSoup for HTML parsing, and pandas for data management. The suite is modular, robust, and designed for large-scale, reliable scraping with full session management and error handling.
@@ -91,7 +97,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Start: acgme_scraper.py] --> B[Read program list (with/without year)]
+    A[Start: acgme_scraper.py] --> B[Read program list - with/without year]
     B --> C[For each program ID]
     C --> D[Search ACGME site]
     D --> E[Try to click 'View Accreditation History']
