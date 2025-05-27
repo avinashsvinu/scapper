@@ -1,5 +1,11 @@
-import time
+"""
+progress_monitor.py
+
+Monitors the progress of the scraping process, detects stalls, and restarts the scraper if needed.
+"""
+
 import os
+import time
 import signal
 import subprocess
 import random
@@ -18,12 +24,14 @@ RUN_ALL_CMD = "./run_all.sh"
 
 
 def log(msg):
+    """Log a message to stdout and to the logfile."""
     print(msg)
     with open(LOGFILE, "a") as f:
         f.write(msg + "\n")
 
 
 def kill_scraper():
+    """Find and kill the main scraping process if it is running."""
     try:
         out = subprocess.check_output(["pgrep", "-f", SCRAPER_CMD])
         pids = [int(pid) for pid in out.decode().split()]
@@ -31,12 +39,16 @@ def kill_scraper():
             os.kill(pid, signal.SIGTERM)
         log(f"[WARNING] Killed stalled process(es): {pids}")
         return True
-    except Exception as e:
-        log(f"[INFO] No running scraper process found to kill. ({e})")
+    except subprocess.CalledProcessError as exc:
+        log(f"[INFO] No running scraper process found to kill. ({exc})")
+        return False
+    except Exception as exc:
+        log(f"[ERROR] Unexpected error while killing scraper: {exc}")
         return False
 
 
 def count_records(csv_path):
+    """Count the number of records in a CSV file, excluding the header."""
     if not os.path.exists(csv_path):
         return 0
     with open(csv_path, "r") as f:
@@ -44,6 +56,7 @@ def count_records(csv_path):
 
 
 def main():
+    """Monitor progress, detect stalls, and restart the scraper if needed."""
     log("Monitoring progress. Press Ctrl+C to stop.")
     total = count_records(TOTAL_CSV)
     last_failed = last_success = None
