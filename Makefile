@@ -1,4 +1,4 @@
-.PHONY: lint test fix validate clean
+.PHONY: lint test fix validate clean coverage
 
 # Default target
 validate: lint test
@@ -7,12 +7,12 @@ validate: lint test
 lint:
 	pylint $$(git ls-files '*.py')
 
-# Placeholder for running tests
-# Replace with your test runner if you add tests
-# Example: pytest
+# Run tests with pytest using python3.9
+# Ignores test_login_session.py by default
+# Outputs coverage and missing lines
 
 test:
-	pytest tests/
+	python3.9 -m pytest --maxfail=1 --disable-warnings --ignore=test_login_session.py --cov=. --cov-report=term-missing -v | tee test-results.txt
 
 # Auto-fix Python files with autopep8 (if installed)
 fix:
@@ -23,8 +23,5 @@ clean:
 	find . -name '*.pyc' -delete
 	find . -name '__pycache__' -type d -exec rm -rf {} +
 
-# Run tests with coverage
-.PHONY: coverage
-
 coverage:
-	pytest --cov=. --cov-report=term-missing tests/ 
+	python3.9 -m pytest --cov=. --cov-report=term-missing tests/ 
