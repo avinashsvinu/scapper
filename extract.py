@@ -4,13 +4,11 @@ extract.py
 Extracts all FREIDA program IDs by scraping paginated search results.
 """
 
-# Scraper for FREIDA programs list using Playwright (supports
-# JavaScript-rendered content)
-
+import logging
 import time
+
 import pandas as pd
 from playwright.sync_api import sync_playwright
-import logging
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,24 +18,23 @@ START_URL_TEMPLATE = "https://freida.ama-assn.org/search/list?spec=42771&page={p
 
 
 def extract_program_data(page):
+    """
+    Extracts program IDs from all cards on the current page.
+    """
     data = []
     cards = page.query_selector_all(".search-result-card")
-    logging.info(f"Found {len(cards)} program cards on page.")
+    logging.info("Found %d program cards on page.", len(cards))
     for idx, card in enumerate(cards):
         try:
             id_span = card.query_selector("footer span:nth-of-type(2)")
             if not id_span:
-                logging.warning(f"Card {idx}: Missing ID span element.")
+                logging.warning("Card %d: Missing ID span element.", idx)
                 continue
-
             program_id = id_span.inner_text().replace("ID:", "").strip()
-            logging.info(f"Extracted program ID: {program_id}")
-
-            data.append({
-                "program_id": program_id
-            })
+            logging.info("Extracted program ID: %s", program_id)
+            data.append({"program_id": program_id})
         except Exception as e:
-            logging.warning(f"Card {idx}: Error parsing ID: {e}")
+            logging.warning("Card %d: Error parsing ID: %s", idx, e)
     return data
 
 
@@ -50,37 +47,29 @@ def scrape_all_pages():
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
-
         page_num = 1
         while True:
             url = START_URL_TEMPLATE.format(page=page_num)
-            logging.info(f"Navigating to {url}")
+            logging.info("Navigating to %s", url)
             try:
                 page.goto(url, wait_until="networkidle")
                 page.wait_for_selector(".search-result-card", timeout=10000)
             except Exception as e:
                 logging.error(
-                    f"Failed to load or wait for content on page {page_num}: {e}")
+                    "Failed to load or wait for content on page %d: %s", page_num, e)
                 break
-
             page_data = extract_program_data(page)
             if not page_data:
                 logging.info("No more data found.")
                 break
-
             all_data.extend(page_data)
             page_num += 1
             time.sleep(1.0)
-
         browser.close()
-
     return all_data
 
 
 if __name__ == "__main__":
-    """
-    Main entry point: runs the program ID extraction and saves to CSV.
-    """
     try:
         data = scrape_all_pages()
         if data:
@@ -90,4 +79,4 @@ if __name__ == "__main__":
         else:
             logging.warning("⚠️ No data scraped.")
     except Exception as e:
-        logging.critical(f"Unexpected error: {e}")
+        logging.critical("Unexpected error: %s", e)

@@ -1,4 +1,13 @@
+"""
+utils.py
+
+Utility functions for extracting nodes and contact details from FREIDA JSON structures.
+"""
+
 def find_included_node(type_name, node_id, included_list):
+    """
+    Finds and returns a node from included_list matching the given type and id.
+    """
     for node in included_list:
         if node.get('type') == type_name and node.get('id') == node_id:
             return node
@@ -10,6 +19,9 @@ def extract_contact_details(
         survey_rels,
         included_nodes,
         extracted_data):
+    """
+    Extracts contact details for a given ref_key from survey relationships and updates extracted_data dict.
+    """
     ref = survey_rels.get(ref_key, {}).get('data', {})
     if isinstance(ref, dict):
         node = find_included_node(

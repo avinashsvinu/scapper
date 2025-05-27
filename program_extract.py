@@ -4,24 +4,21 @@ program_extract.py
 Legacy script for extracting detailed FREIDA program information, including director and contact info, using Playwright and BeautifulSoup.
 """
 
-# Scraper for FREIDA programs list using Playwright (supports
-# JavaScript-rendered content)
-
-import time
-import pandas as pd
-from playwright.sync_api import sync_playwright
+import json
 import logging
+import os
 import re
 import sys
-import json
+import time
+
+import pandas as pd
 from bs4 import BeautifulSoup
-import os
+from playwright.sync_api import sync_playwright
 
 # Set flags from CLI
 DEBUG_MODE = '--debug' in sys.argv
 EXIT_ON_ERRORS = '--exit-on-errors' in sys.argv
 
-# Logging
 logging.basicConfig(
     level=logging.DEBUG if DEBUG_MODE else logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -37,8 +34,7 @@ def find_included_node(type_name, node_id, included_list):
     if not type_name or not node_id:
         return None
     for node in included_list:
-        if isinstance(node, dict) and node.get(
-                'type') == type_name and node.get('id') == node_id:
+        if isinstance(node, dict) and node.get('type') == type_name and node.get('id') == node_id:
             return node
     return None
 
