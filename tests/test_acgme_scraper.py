@@ -222,4 +222,92 @@ def test_get_first_academic_year_all_fail():
                 result = acgme_scraper.get_first_academic_year(page, "12345")
                 assert result is None
 
+# Test extract_year_from_image with OCR returning a valid year
+@patch('acgme_scraper.pytesseract.image_to_string')
+def test_extract_year_from_image_valid(mock_ocr):
+    mock_ocr.return_value = 'Some text\n2022 - 2023\nMore text'
+    with patch('acgme_scraper.Image.open'):
+        year = acgme_scraper.extract_year_from_image('dummy.png')
+    assert year == '2022 - 2023'
+
+# Test extract_academic_year_from_table returns year from table
+def test_extract_academic_year_from_table_success():
+    page = MagicMock()
+    row = MagicMock()
+    cell = MagicMock()
+    cell.inner_text.return_value = '2021 - 2022'
+    row.query_selector_all.return_value = [cell]
+    page.query_selector_all.return_value = [MagicMock(), row]  # header + 1 data row
+    page.wait_for_selector.return_value = None
+    year = acgme_scraper.extract_academic_year_from_table(page, 'pid')
+    assert year == '2021 - 2022'
+
+# Test extract_academic_year_from_table falls back to OCR
+@patch('acgme_scraper.extract_year_from_image')
+def test_extract_academic_year_from_table_fallback_ocr(mock_ocr):
+    page = MagicMock()
+    page.query_selector_all.return_value = [MagicMock()]  # only header, no data
+    page.wait_for_selector.return_value = None
+    page.screenshot.return_value = None
+    mock_ocr.return_value = '2020 - 2021'
+    with patch('os.path.exists', return_value=True):
+        year = acgme_scraper.extract_academic_year_from_table(page, 'pid')
+    assert year == '2020 - 2021'
+
+def test_get_first_academic_year_no_programs(monkeypatch):
+    page = MagicMock()
+    page.inner_text.return_value = 'No Programs found'
+    page.goto.return_value = None
+    page.fill.return_value = None
+    page.press.return_value = None
+    page.wait_for_timeout.return_value = None
+    result = acgme_scraper.get_first_academic_year(page, 'pid')
+    assert result is None
+
+def test_get_first_academic_year_table(monkeypatch):
+    page = MagicMock()
+    page.inner_text.return_value = 'Some result text'
+    page.goto.return_value = None
+    page.fill.return_value = None
+    page.press.return_value = None
+    page.wait_for_timeout.return_value = None
+    page.url = '/AccreditationHistoryReport?programId=pid'
+    monkeypatch.setattr('acgme_scraper.extract_academic_year_from_table', lambda p, pid, s: '2019 - 2020')
+    locator = MagicMock()
+    locator.wait_for.return_value = None
+    locator.scroll_into_view_if_needed.return_value = None
+    page.locator.return_value = locator
+    page.expect_navigation.return_value.__enter__.return_value = None
+    page.expect_navigation.return_value.__exit__.return_value = None
+    result = acgme_scraper.get_first_academic_year(page, 'pid')
+    assert result == '2019 - 2020'
+
+@patch('acgme_scraper.extract_year_from_image')
+def test_get_first_academic_year_fallback_ocr(mock_ocr):
+    page = MagicMock()
+    page.inner_text.return_value = 'Some result text'
+    page.goto.return_value = None
+    page.fill.return_value = None
+    page.press.return_value = None
+    page.wait_for_timeout.return_value = None
+    page.url = '/not-history-url'
+    locator = MagicMock()
+    locator.wait_for.side_effect = Exception('fail')
+    page.locator.return_value = locator
+    page.screenshot.return_value = None
+    mock_ocr.return_value = '2018 - 2019'
+    with patch('os.path.exists', return_value=True):
+        result = acgme_scraper.get_first_academic_year(page, 'pid')
+    assert result == '2018 - 2019'
+
+def test_extract_academic_year_from_table_none():
+    page = MagicMock()
+    page.query_selector_all.return_value = [MagicMock()]  # only header, no data
+    page.wait_for_selector.return_value = None
+    page.screenshot.return_value = None
+    with patch('os.path.exists', return_value=True), \
+         patch('acgme_scraper.extract_year_from_image', return_value=None):
+        year = acgme_scraper.extract_academic_year_from_table(page, 'pid')
+    assert year is None
+
 # More tests will be added for each function, with mocks for Playwright and file I/O. 
