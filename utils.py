@@ -4,6 +4,7 @@ utils.py
 Utility functions for extracting nodes and contact details from FREIDA JSON structures.
 """
 
+
 def find_included_node(type_name, node_id, included_list):
     """
     Finds and returns a node from included_list matching the given type and id.
