@@ -1,9 +1,9 @@
+import pytest
+import utils
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
-import utils
-import pytest
 
 def test_find_included_node_found():
     included = [
@@ -13,12 +13,14 @@ def test_find_included_node_found():
     node = utils.find_included_node("person", "1", included)
     assert node["foo"] == "bar"
 
+
 def test_find_included_node_not_found():
     included = [
         {"type": "person", "id": "1"}
     ]
     node = utils.find_included_node("org", "2", included)
     assert node is None
+
 
 def test_extract_contact_details_full():
     survey_rels = {"contact": {"data": {"type": "person", "id": "1"}}}
@@ -48,6 +50,7 @@ def test_extract_contact_details_full():
     assert extracted["contact_phone"] == "123"
     assert extracted["contact_address"] == "Org, L1, L2, Loc, AA, 99999"
 
+
 def test_extract_contact_details_not_found():
     survey_rels = {"contact": {"data": {"type": "person", "id": "2"}}}
     included = [
@@ -56,8 +59,9 @@ def test_extract_contact_details_not_found():
     extracted = {}
     utils.extract_contact_details("contact", survey_rels, included, extracted)
     for suffix in [
-        'first_name', 'last_name', 'degrees', 'address', 'email', 'phone']:
+            'first_name', 'last_name', 'degrees', 'address', 'email', 'phone']:
         assert extracted[f"contact_{suffix}"] is None
+
 
 def test_extract_contact_details_no_data():
     survey_rels = {"contact": {"data": None}}
@@ -65,5 +69,5 @@ def test_extract_contact_details_no_data():
     extracted = {}
     utils.extract_contact_details("contact", survey_rels, included, extracted)
     for suffix in [
-        'first_name', 'last_name', 'degrees', 'address', 'email', 'phone']:
-        assert extracted[f"contact_{suffix}"] is None 
+            'first_name', 'last_name', 'degrees', 'address', 'email', 'phone']:
+        assert extracted[f"contact_{suffix}"] is None

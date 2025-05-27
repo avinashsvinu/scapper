@@ -29,6 +29,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 def human_like_click(page: Page, locator) -> None:
     """
     Simulates a human-like mouse click on a web element using Playwright.
@@ -48,6 +49,7 @@ def human_like_click(page: Page, locator) -> None:
     else:
         locator.click(timeout=5000, force=True)
 
+
 def extract_year_from_image(image_path: str) -> Optional[str]:
     """
     Uses OCR to extract the academic year from a screenshot image.
@@ -61,11 +63,14 @@ def extract_year_from_image(image_path: str) -> Optional[str]:
             if match and match != '-':
                 logging.debug("Extracted academic year from OCR: %s", match)
                 return match
-        logging.warning("No valid academic year found in OCR text for %s", image_path)
+        logging.warning(
+            "No valid academic year found in OCR text for %s",
+            image_path)
         return None
     except (OSError, ValueError) as err:
         logging.error("OCR failed for %s: %s", image_path, err)
         return None
+
 
 def extract_academic_year_from_table(
     page: Page, program_id: str, screenshot_path: Optional[str] = None
@@ -77,7 +82,10 @@ def extract_academic_year_from_table(
     try:
         page.wait_for_selector('table', timeout=30000)
         rows = page.query_selector_all('table tr')
-        logging.debug("Found %d rows in accreditation table for %s", len(rows), program_id)
+        logging.debug(
+            "Found %d rows in accreditation table for %s",
+            len(rows),
+            program_id)
         if len(rows) > 1:
             for i in range(1, len(rows)):
                 cells = rows[i].query_selector_all('td')
@@ -87,15 +95,20 @@ def extract_academic_year_from_table(
                         logging.debug("Extracted academic year: %s", year)
                         return year
                     logging.debug(
-                        "Skipping invalid year '%s' in row %d for %s", year, i, program_id
-                    )
+                        "Skipping invalid year '%s' in row %d for %s",
+                        year,
+                        i,
+                        program_id)
             logging.error("No valid academic year found for %s", program_id)
             screenshot_path = f"debug_acgme_{program_id}.png"
             try:
                 page.screenshot(path=screenshot_path, full_page=True)
                 logging.debug("Saved screenshot to %s", screenshot_path)
             except Exception as ss_err:
-                logging.error("Could not save screenshot for %s: %s", program_id, ss_err)
+                logging.error(
+                    "Could not save screenshot for %s: %s",
+                    program_id,
+                    ss_err)
                 screenshot_path = None
             if screenshot_path and os.path.exists(screenshot_path):
                 ocr_year = extract_year_from_image(screenshot_path)
@@ -108,7 +121,10 @@ def extract_academic_year_from_table(
             page.screenshot(path=screenshot_path, full_page=True)
             logging.debug("Saved screenshot to %s", screenshot_path)
         except Exception as ss_err:
-            logging.error("Could not save screenshot for %s: %s", program_id, ss_err)
+            logging.error(
+                "Could not save screenshot for %s: %s",
+                program_id,
+                ss_err)
             screenshot_path = None
         if screenshot_path and os.path.exists(screenshot_path):
             ocr_year = extract_year_from_image(screenshot_path)
@@ -116,19 +132,26 @@ def extract_academic_year_from_table(
                 return ocr_year
         return None
     except Exception as err:
-        logging.error("Exception in extract_academic_year_from_table for %s: %s", program_id, err)
+        logging.error(
+            "Exception in extract_academic_year_from_table for %s: %s",
+            program_id,
+            err)
         screenshot_path = f"debug_acgme_{program_id}.png"
         try:
             page.screenshot(path=screenshot_path, full_page=True)
             logging.debug("Saved screenshot to %s", screenshot_path)
         except Exception as ss_err:
-            logging.error("Could not save screenshot for %s: %s", program_id, ss_err)
+            logging.error(
+                "Could not save screenshot for %s: %s",
+                program_id,
+                ss_err)
             screenshot_path = None
         if screenshot_path and os.path.exists(screenshot_path):
             ocr_year = extract_year_from_image(screenshot_path)
             if ocr_year:
                 return ocr_year
         return None
+
 
 def get_first_academic_year(page: Page, program_id: str) -> Optional[str]:
     """
@@ -158,7 +181,10 @@ def get_first_academic_year(page: Page, program_id: str) -> Optional[str]:
                 program_id,
             )
         except Exception as click_err:
-            logging.warning("Click by text locator failed for %s: %s", program_id, click_err)
+            logging.warning(
+                "Click by text locator failed for %s: %s",
+                program_id,
+                click_err)
             if "/AccreditationHistoryReport?programId=" in page.url:
                 logging.debug(
                     "Already navigated to Accreditation History page for %s, continuing extraction.",
@@ -170,7 +196,10 @@ def get_first_academic_year(page: Page, program_id: str) -> Optional[str]:
                 page.screenshot(path=screenshot_path, full_page=True)
                 logging.debug("Saved screenshot to %s", screenshot_path)
             except Exception as ss_err:
-                logging.error("Could not save screenshot for %s: %s", program_id, ss_err)
+                logging.error(
+                    "Could not save screenshot for %s: %s",
+                    program_id,
+                    ss_err)
                 screenshot_path = None
             if screenshot_path and os.path.exists(screenshot_path):
                 ocr_year = extract_year_from_image(screenshot_path)
@@ -189,19 +218,26 @@ def get_first_academic_year(page: Page, program_id: str) -> Optional[str]:
                     program_id,
                 )
             except Exception as btn_err:
-                logging.warning("Click by class+text failed for %s: %s", program_id, btn_err)
+                logging.warning(
+                    "Click by class+text failed for %s: %s",
+                    program_id,
+                    btn_err)
                 if "/AccreditationHistoryReport?programId=" in page.url:
                     logging.debug(
                         "Already navigated to Accreditation History page for %s, continuing extraction.",
                         program_id,
                     )
-                    return extract_academic_year_from_table(page, program_id, None)
+                    return extract_academic_year_from_table(
+                        page, program_id, None)
                 screenshot_path = f"debug_acgme_{program_id}.png"
                 try:
                     page.screenshot(path=screenshot_path, full_page=True)
                     logging.debug("Saved screenshot to %s", screenshot_path)
                 except Exception as ss_err:
-                    logging.error("Could not save screenshot for %s: %s", program_id, ss_err)
+                    logging.error(
+                        "Could not save screenshot for %s: %s",
+                        program_id,
+                        ss_err)
                     screenshot_path = None
                 if screenshot_path and os.path.exists(screenshot_path):
                     ocr_year = extract_year_from_image(screenshot_path)
@@ -212,11 +248,10 @@ def get_first_academic_year(page: Page, program_id: str) -> Optional[str]:
                     found = False
                     for anchor in anchors:
                         anchor_text = anchor.inner_text().strip() if anchor else ''
-                        anchor_href = anchor.get_attribute('href') if anchor else ''
-                        if (
-                            anchor_text == 'View Accreditation History' or (
-                                anchor_href and 'AccreditationHistoryReport' in anchor_href)
-                        ):
+                        anchor_href = anchor.get_attribute(
+                            'href') if anchor else ''
+                        if (anchor_text == 'View Accreditation History' or (
+                                anchor_href and 'AccreditationHistoryReport' in anchor_href)):
                             logging.debug(
                                 "Fallback: found <a> with text/href for %s, trying human-like click...",
                                 program_id,
@@ -231,37 +266,44 @@ def get_first_academic_year(page: Page, program_id: str) -> Optional[str]:
                             )
                             break
                     if not found:
-                        logging.warning("No <a> tag found for fallback click for %s", program_id)
+                        logging.warning(
+                            "No <a> tag found for fallback click for %s", program_id)
                         if locator:
                             href = locator.get_attribute('href')
                             if href:
                                 direct_url = (
-                                    f"https://apps.acgme.org{href}" if href.startswith('/') else href
-                                )
+                                    f"https://apps.acgme.org{href}" if href.startswith('/') else href)
                                 logging.debug(
-                                    "Fallback: navigating directly to %s", direct_url
-                                )
+                                    "Fallback: navigating directly to %s", direct_url)
                                 page.goto(direct_url, timeout=30000)
                             else:
-                                logging.error("No href found for fallback navigation for %s", program_id)
+                                logging.error(
+                                    "No href found for fallback navigation for %s", program_id)
                                 return None
                         else:
-                            logging.error("No locator for fallback navigation for %s", program_id)
+                            logging.error(
+                                "No locator for fallback navigation for %s", program_id)
                             return None
                 except Exception as anchor_err:
-                    logging.error("Fallback <a> parse/click failed for %s: %s", program_id, anchor_err)
+                    logging.error(
+                        "Fallback <a> parse/click failed for %s: %s",
+                        program_id,
+                        anchor_err)
                     if "/AccreditationHistoryReport?programId=" in page.url:
                         logging.debug(
                             "Already navigated to Accreditation History page for %s, continuing extraction.",
                             program_id,
                         )
-                        return extract_academic_year_from_table(page, program_id, None)
+                        return extract_academic_year_from_table(
+                            page, program_id, None)
                     screenshot_path = f"debug_acgme_{program_id}.png"
                     try:
                         page.screenshot(path=screenshot_path, full_page=True)
-                        logging.debug("Saved screenshot to %s", screenshot_path)
+                        logging.debug(
+                            "Saved screenshot to %s", screenshot_path)
                     except Exception as ss_err:
-                        logging.error("Could not save screenshot for %s: %s", program_id, ss_err)
+                        logging.error(
+                            "Could not save screenshot for %s: %s", program_id, ss_err)
                         screenshot_path = None
                     if screenshot_path and os.path.exists(screenshot_path):
                         ocr_year = extract_year_from_image(screenshot_path)
@@ -276,8 +318,12 @@ def get_first_academic_year(page: Page, program_id: str) -> Optional[str]:
             page.screenshot(path=screenshot_path, full_page=True)
             logging.debug("Saved screenshot to %s", screenshot_path)
         except Exception as ss_err:
-            logging.error("Could not save screenshot for %s: %s", program_id, ss_err)
-            return extract_academic_year_from_table(page, program_id, screenshot_path)
+            logging.error(
+                "Could not save screenshot for %s: %s",
+                program_id,
+                ss_err)
+            return extract_academic_year_from_table(
+                page, program_id, screenshot_path)
     except Exception as err:
         logging.error("Exception for %s: %s", program_id, err)
         try:
@@ -293,13 +339,17 @@ def get_first_academic_year(page: Page, program_id: str) -> Optional[str]:
                     program_id,
                 )
         except Exception as inner_err:
-            logging.error("Could not save debug HTML for %s: %s", program_id, inner_err)
+            logging.error(
+                "Could not save debug HTML for %s: %s",
+                program_id,
+                inner_err)
         screenshot_path = f"debug_acgme_{program_id}.png"
         if os.path.exists(screenshot_path):
             ocr_year = extract_year_from_image(screenshot_path)
             if ocr_year:
                 return ocr_year
         return None
+
 
 def get_first_academic_year_with_retry(
     page: Page, program_id: str, max_retries: int = 3
@@ -313,18 +363,23 @@ def get_first_academic_year_with_retry(
         if year:
             return year
         if attempt < max_retries:
-            logging.debug("Retrying program_id=%s after failure...", program_id)
+            logging.debug(
+                "Retrying program_id=%s after failure...",
+                program_id)
             time.sleep(2)
-    logging.error("All %d attempts failed for program_id=%s", max_retries, program_id)
+    logging.error(
+        "All %d attempts failed for program_id=%s",
+        max_retries,
+        program_id)
     return None
+
 
 def main() -> None:
     """
     Main entry point for the script. Handles CLI arguments and orchestrates extraction.
     """
     parser = argparse.ArgumentParser(
-        description='Scrape ACGME academic years for programs. Supports retrying failed records and OCR fallback.'
-    )
+        description='Scrape ACGME academic years for programs. Supports retrying failed records and OCR fallback.')
     parser.add_argument(
         '--failed-only',
         action='store_true',
@@ -340,13 +395,20 @@ def main() -> None:
     logging.info("Starting script. Current working dir: %s", os.getcwd())
     if args.failed_record:
         if not os.path.exists(FAILED_CSV_FILE):
-            logging.error("Failed CSV file '%s' not found for --failed-record.", FAILED_CSV_FILE)
+            logging.error(
+                "Failed CSV file '%s' not found for --failed-record.",
+                FAILED_CSV_FILE)
             sys.exit(1)
         df_failed = pd.read_csv(FAILED_CSV_FILE)
         logging.info("Read %d rows from %s", len(df_failed), FAILED_CSV_FILE)
-        id_list = [x.strip() for x in args.failed_record.split(',') if x.strip()]
-        failed_df = df_failed[df_failed['program_id'].astype(str).isin(id_list)]
-        logging.info("Found %d records to retry by --failed-record: %s", len(failed_df), id_list)
+        id_list = [x.strip()
+                   for x in args.failed_record.split(',') if x.strip()]
+        failed_df = df_failed[df_failed['program_id'].astype(
+            str).isin(id_list)]
+        logging.info(
+            "Found %d records to retry by --failed-record: %s",
+            len(failed_df),
+            id_list)
         if len(failed_df) == 0:
             logging.info("No matching records to process. Exiting.")
             return
@@ -358,13 +420,14 @@ def main() -> None:
         process_df = df_failed.copy()
         output_file = FAILED_CSV_FILE
     else:
-        df_main = pd.read_csv(NEW_CSV_FILE) if os.path.exists(NEW_CSV_FILE) else pd.read_csv(CSV_FILE)
+        df_main = pd.read_csv(NEW_CSV_FILE) if os.path.exists(
+            NEW_CSV_FILE) else pd.read_csv(CSV_FILE)
         logging.info(
             "Read %d rows from %s", len(df_main),
             'freida_programs_output_with_academic_year.csv' if os.path.exists(NEW_CSV_FILE) else 'freida_programs_output.csv'
         )
-        process_df = df_main[df_main['acgme_first_academic_year'].isnull() |
-                             (df_main['acgme_first_academic_year'].astype(str).str.strip() == '')].copy()
+        process_df = df_main[df_main['acgme_first_academic_year'].isnull() | (
+            df_main['acgme_first_academic_year'].astype(str).str.strip() == '')].copy()
         output_file = NEW_CSV_FILE
 
     academic_years = []
@@ -377,15 +440,25 @@ def main() -> None:
         elif args.failed_only:
             iter_df = process_df
         else:
-            random_indices = random.sample(range(len(process_df)), min(5, len(process_df))) if len(process_df) > 0 else []
-            iter_df = process_df.iloc[random_indices] if len(random_indices) > 0 else process_df.iloc[[]]
+            random_indices = random.sample(
+                range(
+                    len(process_df)), min(
+                    5, len(process_df))) if len(process_df) > 0 else []
+            iter_df = process_df.iloc[random_indices] if len(
+                random_indices) > 0 else process_df.iloc[[]]
         for idx, row in iter_df.iterrows():
             program_id = row['program_id']
-            logging.info("Processing %s (test %d/%d)...", program_id, idx + 1, len(iter_df))
+            logging.info(
+                "Processing %s (test %d/%d)...",
+                program_id,
+                idx + 1,
+                len(iter_df))
             try:
-                year = get_first_academic_year_with_retry(page, program_id, max_retries=3)
+                year = get_first_academic_year_with_retry(
+                    page, program_id, max_retries=3)
             except Exception as err:
-                logging.error("Exception in get_first_academic_year_with_retry: %s", err)
+                logging.error(
+                    "Exception in get_first_academic_year_with_retry: %s", err)
                 year = None
             academic_years.append(year)
             time.sleep(1.5)
@@ -402,7 +475,8 @@ def main() -> None:
                 pid = row['program_id']
                 year = row['acgme_first_academic_year'] if 'acgme_first_academic_year' in row else None
                 if year and str(year).strip():
-                    main_df.loc[main_df['program_id'] == pid, 'acgme_first_academic_year'] = year
+                    main_df.loc[main_df['program_id'] == pid,
+                                'acgme_first_academic_year'] = year
             main_df.to_csv(NEW_CSV_FILE, index=False)
             df_full = main_df
         else:
@@ -413,13 +487,14 @@ def main() -> None:
             pid = row['program_id']
             year = row['acgme_first_academic_year'] if 'acgme_first_academic_year' in row else None
             if year and str(year).strip():
-                full_df.loc[full_df['program_id'] == pid, 'acgme_first_academic_year'] = year
+                full_df.loc[full_df['program_id'] == pid,
+                            'acgme_first_academic_year'] = year
         full_df.to_csv(output_file, index=False)
         df_full = full_df
-    success_df = df_full[df_full['acgme_first_academic_year'].notnull() &
-                        (df_full['acgme_first_academic_year'].astype(str).str.strip() != '')]
-    failed_df = df_full[df_full['acgme_first_academic_year'].isnull() |
-                       (df_full['acgme_first_academic_year'].astype(str).str.strip() == '')]
+    success_df = df_full[df_full['acgme_first_academic_year'].notnull() & (
+        df_full['acgme_first_academic_year'].astype(str).str.strip() != '')]
+    failed_df = df_full[df_full['acgme_first_academic_year'].isnull() | (
+        df_full['acgme_first_academic_year'].astype(str).str.strip() == '')]
     success_df.to_csv(SUCCESS_CSV_FILE, index=False)
     failed_df.to_csv(FAILED_CSV_FILE, index=False)
     logging.info(
@@ -427,6 +502,7 @@ def main() -> None:
         len(success_df), SUCCESS_CSV_FILE, len(failed_df), FAILED_CSV_FILE
     )
     logging.info("Script finished.")
+
 
 if __name__ == "__main__":
     main()

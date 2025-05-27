@@ -1,11 +1,11 @@
+import json
+from unittest.mock import MagicMock
+import scraper
+import pytest
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
-import pytest
-import scraper
-from unittest.mock import MagicMock
-import json
 
 def test_extract_program_detail_minimal(monkeypatch):
     # Mock Playwright page
@@ -20,19 +20,15 @@ def test_extract_program_detail_minimal(monkeypatch):
                         "attributes": {
                             "field_program_id": "99999",
                             "title": "Test Program",
-                            "field_address": {"locality": "Test City", "administrative_area": "TS"},
+                            "field_address": {
+                                "locality": "Test City",
+                                "administrative_area": "TS"},
                             "changed": "2024-01-01",
                             "field_accredited_length": 3,
                             "field_required_length": 3,
-                            "field_affiliated_us_gov": False
-                        },
-                        "relationships": {}
-                    }
-                ],
-                "included": []
-            }
-        }
-    }
+                            "field_affiliated_us_gov": False},
+                        "relationships": {}}],
+                "included": []}}}
     html = '<html><body><script id="ng-state" type="application/json">' + \
         json.dumps(minimal_json) + '</script></body></html>'
     page.content.return_value = html
@@ -51,6 +47,7 @@ def test_extract_program_detail_minimal(monkeypatch):
     assert result["required_training_length"] == 3
     assert result["affiliated_us_government"] is False
     assert result["source_url"].endswith("/program/99999")
+
 
 def test_extract_program_detail_with_survey(monkeypatch):
     page = MagicMock()
@@ -85,6 +82,7 @@ def test_extract_program_detail_with_survey(monkeypatch):
     page.goto.return_value = None
     page.wait_for_selector.return_value = None
     # Patch find_included_node to return a survey node
+
     def fake_find_included_node(type_, id_, included):
         if type_ == "survey" and id_ == "s1":
             return {
@@ -124,6 +122,7 @@ def test_extract_program_detail_with_survey(monkeypatch):
     assert result["participates_in_eras"] is True
     assert result["visa_statuses_accepted"] == "J1"
 
+
 def test_extract_program_detail_with_director_and_contact(monkeypatch):
     page = MagicMock()
     # JSON with survey, director, and contact relationships
@@ -157,15 +156,16 @@ def test_extract_program_detail_with_director_and_contact(monkeypatch):
     page.goto.return_value = None
     page.wait_for_selector.return_value = None
     # Patch find_included_node to return director/contact nodes as needed
+
     def fake_find_included_node(type_, id_, included):
         if type_ == "survey" and id_ == "s2":
             return {
-                "attributes": {},
-                "relationships": {
-                    "field_program_director": {"data": {"type": "person", "id": "d1"}},
-                    "field_program_contact": {"data": {"type": "person", "id": "c1"}}
-                }
-            }
+                "attributes": {}, "relationships": {
+                    "field_program_director": {
+                        "data": {
+                            "type": "person", "id": "d1"}}, "field_program_contact": {
+                        "data": {
+                            "type": "person", "id": "c1"}}}}
         if type_ == "person" and id_ == "d1":
             return {
                 "attributes": {
@@ -236,6 +236,7 @@ def test_extract_program_detail_with_director_and_contact(monkeypatch):
     assert result["contact_email"] == "con@email.com"
     assert result["contact_phone"] == "987-654-3210"
 
+
 def test_extract_program_detail_missing_ng_state(monkeypatch):
     page = MagicMock()
     # HTML with no ng-state script
@@ -251,4 +252,4 @@ def test_extract_program_detail_missing_ng_state(monkeypatch):
     except Exception as e:
         assert isinstance(e, ValueError)
     else:
-        assert "error" in result or result["program_id"] == "00000" 
+        assert "error" in result or result["program_id"] == "00000"
