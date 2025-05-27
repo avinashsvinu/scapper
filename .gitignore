@@ -9,3 +9,11 @@ nohup.out
 logs/*
 .DS_Store
 local_files_backup/
+
+# macOS and Python temp files
+.coverage
+pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+*.log
